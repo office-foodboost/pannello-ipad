@@ -1,0 +1,1207 @@
+<!doctype html>
+<html lang="it" manifest="pannello.appcache">
+<head>
+<meta charset="utf-8">
+<title>Beppiani Home</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Beppiani">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="lib/leaflet.css">
+<script src="lib/leaflet.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+  html, body { margin: 0; height: 100%; background: #000; color: #fff;
+    font-family: -apple-system, Helvetica, Arial, sans-serif; overflow: hidden; }
+
+  /* ---- scorrimento tra schermate ---- */
+  #pista { display: -webkit-flex; display: flex; height: 100%;
+    -webkit-transition: -webkit-transform .35s ease; transition: transform .35s ease; }
+  .sch { width: 100vw; height: 100%; -webkit-flex: none; flex: none; position: relative; overflow: hidden; }
+  #punti { position: fixed; bottom: 10px; left: 0; right: 0; text-align: center; z-index: 5; pointer-events: none; }
+  #punti i { display: inline-block; width: 8px; height: 8px; border-radius: 4px; background: #2b333d; margin: 0 5px; }
+  #punti i.on { background: #8a97a6; }
+
+  .box { background: #151a21; border-radius: 14px; padding: 16px; margin-bottom: 10px; }
+  .col { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
+  .pad { height: 100%; padding: 10px 10px 28px; display: -webkit-flex; display: flex; }
+
+  /* palette oro (dalla proposta 11): oro #c9b27c, crema #f2ead8, bronzo #8a7c66, scuro #5a4f3e */
+  .deriva { position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    -webkit-transition: -webkit-transform 3s ease; transition: transform 3s ease; }
+  .logo svg { width: 100%; height: 100%; display: block; }
+  .vh { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 1;
+    -webkit-transition: opacity .7s ease; transition: opacity .7s ease; }
+  .vh.via { opacity: 0; pointer-events: none; }
+
+  /* ---- 1. ORBITA ---- */
+  #s1 .anello { position: absolute; left: 50%; top: 50%; width: 76vmin; height: 76vmin; margin: -40vmin 0 0 -38vmin; }
+  #s1 .logo { position: absolute; left: 50%; top: 50%; width: 15vmin; height: 15vmin; margin: -29vmin 0 0 -7.5vmin; }
+  #s1 .ora { position: absolute; left: 0; right: 0; top: 50%; margin-top: -9vmin; text-align: center; font-size: 15vmin; font-weight: 200; color: #f2ead8; font-variant-numeric: tabular-nums; }
+  #s1 .data { position: absolute; left: 0; right: 0; top: 50%; margin-top: 10vmin; text-align: center; font-size: 2.4vmin; letter-spacing: .5vmin; color: #8a7c66; text-transform: uppercase; }
+  #s1 .wm { position: absolute; left: 0; right: 0; bottom: 7vmin; text-align: center; font-size: 1.9vmin; letter-spacing: 1.2vmin; color: #5a4f3e; }
+
+  /* ---- 2. SWISS ORO ---- */
+  #sw .deriva { padding: 5vmin 6vmin; }
+  #sw .top { display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between;
+    border-bottom: 1px solid #2a251c; padding-bottom: 2.5vmin; }
+  #sw .wm { font-size: 2.6vmin; font-weight: 700; letter-spacing: .5vmin; line-height: 1.25; color: #f2ead8; }
+  #sw .wm span { color: #c9b27c; }
+  #sw .loc { font-size: 1.8vmin; color: #8a7c66; text-align: right; line-height: 1.5; letter-spacing: .2vmin; text-transform: uppercase; }
+  #sw .grid { position: absolute; top: 0; bottom: 0; width: 1px; background: #15120d; }
+  #sw .saluto { position: absolute; left: 6vmin; top: 22vmin; font-size: 4.6vmin; font-weight: 200; color: #c9b27c; line-height: 1.2; }
+  #sw .saluto b { display: block; font-weight: 600; color: #f2ead8; }
+  /* ---- avvisi meteo ---- */
+  .avviso1 { color: #e0a84a; font-size: 2.3vmin; display: none; }
+  .avviso1.on { display: block; }
+  .pallino { display: inline-block; width: 1.1em; height: 1.1em; line-height: 1.1em; border-radius: 50%; background: #e0a84a; color: #000;
+    text-align: center; font-weight: 700; font-size: .8em; margin-right: .5em; vertical-align: .1em; }
+  #s1 .avviso1 { position: absolute; left: 0; right: 0; bottom: 11.5vmin; text-align: center; }
+  #sw .avviso1 { position: absolute; left: 6vmin; top: 36vmin; width: 48%; line-height: 1.3; }
+  #avvisibox { margin: 0; }
+  #avvisibox .a { font-size: 16px; color: #e0a84a; padding: 7px 0; border-top: 1px solid #241f16; }
+  #sw .logo { position: absolute; right: 5vmin; top: 16vmin; width: 54vmin; height: 54vmin; }
+  #sw .ora { position: absolute; left: 6vmin; bottom: 12vmin; font-size: 30vmin; font-weight: 700; letter-spacing: -.3vmin; line-height: .8; color: #f2ead8; font-variant-numeric: tabular-nums; }
+  #sw .data { position: absolute; left: 6.5vmin; bottom: 6vmin; font-size: 2.6vmin; color: #8a7c66; text-transform: uppercase; letter-spacing: .4vmin; }
+
+  /* ---- 2. METEO + TIMER ---- */
+  #s2 .sx { padding-right: 10px; }
+  #s2 .dx { -webkit-flex: 1; flex: 1; }
+  #meteo { -webkit-flex: 1; flex: 1; overflow: hidden; }
+  #citta { font-size: 16px; color: #9aa7b5; margin-bottom: 4px; }
+  #ora-meteo { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; }
+  #icona-ora { width: 84px; height: 84px; margin-right: 14px; -webkit-flex: none; flex: none; }
+  #temp { font-size: 58px; font-weight: 200; line-height: 1; }
+  #desc { font-size: 20px; color: #cfd8e3; margin-top: 4px; }
+  #dettagli { font-size: 14px; color: #8a7c66; margin-top: 8px; }
+  .g { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
+    padding: 4px 0; border-top: 1px solid #232b35; font-size: 17px; }
+  .g .ic { width: 30px; height: 30px; margin-right: 10px; -webkit-flex: none; flex: none; }
+  .g .gn { -webkit-flex: 1; flex: 1; }
+  .g .pp { width: 52px; text-align: right; color: #7fb3d5; font-size: 14px; }
+  .g .mm { width: 84px; text-align: right; }
+  #prossimi { margin-top: 10px; }
+  #suono { font-size: 14px; color: #8a7c66; margin: -2px 0 6px; padding: 4px; }
+  #suono b { color: #c9b27c; font-weight: 400; }
+  #timer { text-align: center; margin-bottom: 0; }
+  #tempo { font-size: 66px; font-weight: 200; font-variant-numeric: tabular-nums; }
+  #tempo.fine { color: #ff5a4f; }
+  .riga { display: -webkit-flex; display: flex; }
+  button { -webkit-flex: 1; flex: 1; background: #26303c; color: #fff; border: 0; border-radius: 10px;
+    font-size: 17px; padding: 10px 2px; margin: 3px; }
+  button small { display: block; font-size: 12px; color: #9aa7b5; margin-top: 2px; }
+  button:active { background: #3a4757; }
+  #avvia { background: #2f9e57; }
+  #ferma { background: #c0392b; }
+  #radar { padding: 0; overflow: hidden; height: 100%; margin: 0; position: relative;
+    display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
+  .tabs { padding: 10px 10px 0; -webkit-flex: none; flex: none; }
+  #s2 .tabs button { display: inline-block; -webkit-flex: none; flex: none; width: auto; padding: 9px 16px; margin: 0 6px 0 0;
+    font-size: 15px; background: transparent; color: #8a7c66; border: 1px solid #241f16; }
+  #s2 .tabs button.on { background: #c9b27c; color: #000; border-color: #c9b27c; }
+  .vista { -webkit-flex: 1; flex: 1; position: relative; }
+  #ore { padding: 14px 12px; }
+  #oresintesi { font-size: 19px; color: #f2ead8; margin: 0 4px 16px; line-height: 1.3; }
+  .cella { display: inline-block; width: 16.66%; text-align: center; vertical-align: top; margin-bottom: 34px; }
+  .cella .h { font-size: 14px; color: #8a7c66; }
+  .cella .ic { width: 58px; height: 58px; margin: 6px auto; }
+  .cella .t { font-size: 24px; color: #f2ead8; }
+  .cella .barra { height: 5px; background: #1d1912; border-radius: 3px; margin: 6px 10px 3px; overflow: hidden; }
+  .cella .barra i { display: block; height: 100%; background: #7fb3d5; }
+  .cella .p { font-size: 13px; color: #7fb3d5; }
+  #orenota { font-size: 12px; color: #5a4f3e; margin: 4px; }
+  #mappa { position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px; background: #e8e6e1; border-radius: 10px; }
+  .radarimg { mix-blend-mode: multiply; }   /* il bianco dell'immagine ARPAV diventa trasparente */
+  #legenda { position: absolute; z-index: 1000; left: 20px; right: 20px; bottom: 20px; font-size: 13px; color: #222;
+    background: rgba(255,255,255,.9); padding: 8px 10px; border-radius: 8px; line-height: 1.35; }
+  #scala { display: -webkit-flex; display: flex; margin: 2px 0 6px; }
+  #scala div { -webkit-flex: 1; flex: 1; text-align: center; font-size: 12px; color: #fff; padding: 3px 0; text-shadow: 0 0 2px rgba(0,0,0,.6); }
+  .leaflet-control-attribution { font-size: 9px; }
+  #radarnota { z-index: 1000; position: absolute; top: 20px; left: 20px; font-size: 13px; color: #fff;
+    background: rgba(0,0,0,.55); padding: 3px 8px; border-radius: 8px; }
+
+  /* ---- 3. CRUSCOTTO ---- */
+  #s3 .pad { -webkit-flex-direction: column; flex-direction: column; }
+  #titolo3 { font-size: 22px; color: #c9b27c; letter-spacing: 3px; margin: 4px 6px 12px; }
+  #esempio { font-size: 13px; color: #8a6d3b; margin-left: 12px; letter-spacing: 0; }
+  .kpi { display: -webkit-flex; display: flex; }
+  .kpi .box { -webkit-flex: 1; flex: 1; margin-right: 10px; }
+  .kpi .box:last-child { margin-right: 0; }
+  .et { font-size: 15px; color: #9aa7b5; }
+  .num { font-size: 48px; font-weight: 200; margin-top: 4px; }
+  .var { font-size: 16px; margin-top: 2px; }
+  .su { color: #4cc27a; } .giu { color: #ff6b5f; }
+  .riga3 { display: -webkit-flex; display: flex; -webkit-flex: 1; flex: 1; }
+  .riga3 .box { -webkit-flex: 1; flex: 1; margin-right: 10px; margin-bottom: 0; }
+  .riga3 .box:last-child { margin-right: 0; }
+  #barre { display: -webkit-flex; display: flex; align-items: flex-end; height: 140px; margin-top: 10px; }
+  #barre div { -webkit-flex: 1; flex: 1; margin: 0 4px; background: #3d6f9e; border-radius: 4px 4px 0 0; position: relative; }
+  #barre div.oggi { background: #c9b27c; }
+  #barre span { position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font-size: 12px; color: #9aa7b5; }
+  .prob { padding: 8px 0; border-top: 1px solid #232b35; font-size: 18px; }
+  .prob b { color: #ffb347; font-weight: 400; margin-right: 6px; }
+
+  /* ---- 4. TELECAMERA (solo se impostata) ---- */
+  #s4 img, #s4 iframe { width: 100%; height: 100%; border: 0; object-fit: contain; }
+
+  /* ---- palette oro sulla schermata meteo/timer ---- */
+  #s2 .box { background: #100e0a; border: 1px solid #241f16; }
+  #s2 #citta { color: #8a7c66; letter-spacing: 2px; text-transform: uppercase; font-size: 14px; }
+  #s2 #temp { color: #f2ead8; }
+  #s2 #desc { color: #c9b27c; }
+  #s2 .g { border-top-color: #241f16; color: #e8dcc0; }
+  #s2 button, #st button { background: #1d1912; color: #f2ead8; }
+  #s2 button small, #st button small { color: #8a7c66; }
+  #s2 button:active, #st button:active { background: #2c261b; }
+  /* ---- 3. TIMER a tutta pagina ---- */
+  #st .pad { -webkit-justify-content: center; justify-content: center; -webkit-align-items: center; align-items: center; }
+  #st #timer { width: 100%; max-width: 860px; background: #100e0a; border: 1px solid #241f16; padding: 28px 30px 30px; }
+  #st #tempo { font-size: 180px; font-weight: 100; line-height: 1; color: #f2ead8; margin: 6px 0 10px; }
+  #st #suono { font-size: 18px; margin: 0 0 22px; }
+  #st button { font-size: 26px; padding: 22px 4px; margin: 6px; border-radius: 16px; }
+  #st button small { font-size: 15px; margin-top: 4px; }
+  #st #avvia { background: #2f9e57; color: #fff; }
+  #st #ferma { background: #c0392b; color: #fff; }
+  /* ---- 5. METEO: dettagli più grandi ---- */
+  #s2 .sx { width: 40%; }
+  #s2 .g { padding: 7px 0; font-size: 19px; }
+  #s2 .g .ic { width: 36px; height: 36px; }
+  #avvisitit { font-size: 13px; color: #8a7c66; letter-spacing: 2px; text-transform: uppercase; margin: 18px 0 4px; }
+  #avvisibox .a.nessuno { color: #5a4f3e; }
+  /* ---- RADIO ---- */
+  #sr .pad { -webkit-flex-direction: column; flex-direction: column; padding: 14px 14px 30px; }
+  #radiotop { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; background: #100e0a; border: 1px solid #241f16; padding: 18px 20px; }
+  #radiotop .info { -webkit-flex: 1; flex: 1; }
+  #rnome { font-size: 34px; font-weight: 200; color: #f2ead8; }
+  #rstato { font-size: 15px; color: #8a7c66; margin-top: 4px; }
+  #sr button { -webkit-flex: none; flex: none; border: 0; border-radius: 14px; font-size: 20px; margin: 0 0 0 10px; }
+  #rplay { width: 140px; height: 70px; background: #2f9e57; color: #fff; }
+  #rplay.stop { background: #c0392b; }
+  #rair { height: 70px; padding: 0 18px; background: #1d1912; color: #c9b27c; border: 1px solid #c9b27c !important; }
+  #rgriglia, #rrisultati { -webkit-flex: 1; flex: 1; margin-top: 8px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #rcerca { display: -webkit-flex; display: flex; margin-top: 10px; }
+  #rtesto { -webkit-flex: 1; flex: 1; font-size: 19px; padding: 12px 14px; border-radius: 12px; border: 1px solid #241f16;
+    background: #100e0a; color: #f2ead8; -webkit-appearance: none; outline: none; -webkit-user-select: text; user-select: text; }
+  #rvai, #rchiudi { height: 50px; padding: 0 18px; background: #c9b27c; color: #000; }
+  #rchiudi { background: #1d1912; color: #f2ead8; }
+  .ris { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; padding: 10px 6px; border-top: 1px solid #241f16; }
+  .ris .rn { -webkit-flex: 1; flex: 1; font-size: 19px; color: #f2ead8; }
+  .ris .rn small { display: block; font-size: 13px; color: #8a7c66; margin-top: 2px; }
+  #sr .ris button { height: 46px; padding: 0 14px; font-size: 16px; background: #1d1912; color: #f2ead8; }
+  #sr .ris button.salva { color: #c9b27c; }
+  #sr .ris button.su { background: #2f9e57; color: #fff; }
+  .rmsg { font-size: 17px; color: #8a7c66; padding: 14px 6px; }
+  #sr .rt .togli { position: absolute; right: 6px; top: 6px; font-size: 13px; color: #8a7c66; padding: 2px 6px; }
+  #sr .rt { position: relative; display: inline-block; width: 23.4%; height: 96px; margin: .8%; vertical-align: top; text-align: left; padding: 12px 14px;
+    background: #100e0a; color: #f2ead8; border: 1px solid #241f16 !important; font-size: 21px; }
+  #sr .rt small { display: block; font-size: 13px; color: #8a7c66; margin-top: 4px; }
+  #sr .rt.on { background: #1d1912; border-color: #c9b27c !important; color: #c9b27c; }
+  #rnota { font-size: 12px; color: #5a4f3e; margin: 4px 8px 0; }
+  #minip { display: none; position: fixed; left: 10px; bottom: 6px; z-index: 60; font-size: 14px; color: #c9b27c;
+    background: rgba(16,14,10,.9); border: 1px solid #241f16; border-radius: 16px; padding: 4px 4px 4px 12px; }
+  #minip.on { display: block; }
+  #minip button { background: #3a1f18; color: #f2ead8; border: 0; border-radius: 12px; font-size: 13px; padding: 5px 10px; margin-left: 8px; }
+  /* ---- numero di versione in basso a destra ---- */
+  #versione { position: fixed; right: 8px; bottom: 6px; z-index: 50; font-size: 11px; color: #4a4232; pointer-events: none; }
+  #s2 #radar { border-color: #241f16; }
+  #zoom { position: absolute; z-index: 1000; right: 20px; top: 20px; width: 52px; }
+  #zoom button { display: block; width: 52px; height: 52px; margin: 0 0 8px; padding: 0; font-size: 26px; line-height: 52px;
+    background: rgba(0,0,0,.7); color: #c9b27c; border: 1px solid #241f16; border-radius: 12px; }
+  #s2 #radarnota { color: #fff; background: rgba(0,0,0,.65); letter-spacing: 1px; }
+
+  /* ---- allarme fine timer: copre tutto finché non lo tocchi ---- */
+  #allarme { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;
+    background: #000; text-align: center; padding-top: 22vh; }
+  #allarme.on { display: block; }
+  #allarme.lampo { background: #c9b27c; }
+  #allarme .t { font-size: 13vmin; font-weight: 200; color: #f2ead8; }
+  #allarme .n { font-size: 5vmin; color: #c9b27c; margin-top: 2vmin; }
+  #allarme .x { font-size: 2.6vmin; color: #8a7c66; margin-top: 10vmin; letter-spacing: .4vmin; text-transform: uppercase; }
+  #allarme.lampo .t, #allarme.lampo .n, #allarme.lampo .x { color: #000; }
+
+  @media (orientation: portrait) {
+    #s2 .pad { -webkit-flex-direction: column; flex-direction: column; }
+    #s2 .sx { width: 100%; padding-right: 0; }
+    .kpi, .riga3 { -webkit-flex-direction: column; flex-direction: column; }
+    .kpi .box, .riga3 .box { margin-right: 0; margin-bottom: 10px; }
+  }
+
+  /* ---- schermata meteo: MeteoAle a tutto schermo (verticale e orizzontale), niente radar a destra.
+     In basso resta libera la fascia dei puntini: lì si scorre per cambiare schermata ---- */
+  #s2 .dx { display: none; }
+  #s2 .pad { padding: 0 0 40px; }
+  #s2 .sx { width: 100%; padding: 0; -webkit-flex: 1; flex: 1; min-height: 0; }   /* flex: 1 serve in verticale, dove la colonna va in basso */
+  #s2 #meteo { position: relative; padding: 0; margin: 0; border: 0; border-radius: 0; background: #000; }
+  /* il riquadro non scorre (scrolling="no") e prende misure fisse in pixel dallo script: così su iOS 12 non si allunga
+     quanto la pagina. È MeteoAle a scorrere dentro di sé (vedi ?cornice=1) */
+  #meteoale-box { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; }
+  #meteoale { display: block; width: 100%; height: 100%; border: 0; }
+</style>
+</head>
+<body>
+<div id="pista">
+
+  <!-- 0. RADIO (tutta a sinistra) -->
+  <div class="sch" id="sr">
+    <div class="pad">
+      <div id="radiotop">
+        <div class="info"><div id="rnome">Scegli una radio</div><div id="rstato">Tocca una stazione qui sotto</div></div>
+        <button id="rair">Altoparlanti / HomePod</button>
+        <button id="rplay">Ascolta</button>
+      </div>
+      <form id="rcerca" action="#">
+        <input id="rtesto" type="search" placeholder="Cerca una radio per nome (es. Radio Piave, Jazz, Belluno)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button id="rvai" type="submit">Cerca</button>
+        <button id="rchiudi" type="button" style="display:none">&times; Le mie radio</button>
+      </form>
+      <div id="rgriglia" class="scorre"></div>
+      <div id="rrisultati" class="scorre" style="display:none"></div>
+      <div id="rnota"><b style="color:#8a7c66">Volume: tasti laterali dell'iPad</b> (con AirPlay regolano anche l'HomePod) oppure &laquo;Ehi Siri, alza il volume&raquo;. Per ascoltare sugli HomePod: avvia una radio e tocca "Altoparlanti / HomePod". Se non compare la scelta: Centro di Controllo &rarr; riquadro musica &rarr; icona AirPlay.</div>
+      <audio id="radioaudio" x-webkit-airplay="allow" preload="none"></audio>
+    </div>
+  </div>
+
+  <!-- 1. TIMER (a sinistra della home) -->
+  <div class="sch" id="st">
+    <div class="pad">
+        <div class="box" id="timer">
+          <div id="tempo">00:00</div>
+          <div id="suono">Suono: <b id="suononome">-</b> &middot; tocca per cambiare e ascoltare</div>
+          <div class="riga">
+            <button data-m="1">1'</button>
+            <button data-m="5">5'</button>
+            <button data-m="10">10'</button>
+            <button data-m="15">15'</button>
+          </div>
+          <div class="riga">
+            <button data-m="3" data-n="Uovo alla coque pronto">Uovo<br>coque<small>3'</small></button>
+            <button data-m="9" data-n="Uovo sodo pronto">Uovo<br>sodo<small>9'</small></button>
+            <button data-m="4" data-n="Tè pronto">Tè<br>infuso<small>4'</small></button>
+            <button data-m="30">30'</button>
+          </div>
+          <div class="riga">
+            <button id="meno">-1'</button>
+            <button id="avvia">Avvia</button>
+            <button id="ferma">Azzera</button>
+            <button id="piu">+1'</button>
+          </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- 2. HOME (schermata di partenza): due facce (Orbita e Swiss), un tocco le alterna. Sempre acceso, sfondo nero -->
+  <div class="sch" id="home">
+  <div class="vh" id="s1">
+    <div class="deriva">
+      <svg class="anello" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="48" fill="none" stroke="#1a1712" stroke-width=".6"/>
+        <circle id="orbita" cx="50" cy="50" r="48" fill="none" stroke="#c9b27c" stroke-width=".6" stroke-linecap="round"
+          stroke-dasharray="301.6" stroke-dashoffset="301.6" transform="rotate(-90 50 50)"/>
+        <circle id="satellite" cx="50" cy="2" r="1" fill="#c9b27c"/>
+      </svg>
+      <div class="logo"></div>
+      <div class="ora">--:--</div>
+      <div class="data"></div>
+      <div class="avviso1"></div>
+      <div class="wm">BEPPIANI HOME &middot; BORGO VALBELLUNA</div>
+    </div>
+  </div>
+
+  <!-- seconda faccia: SWISS ORO con saluto -->
+  <div class="vh via" id="sw">
+    <div class="grid" style="left:33.3%"></div><div class="grid" style="left:66.6%"></div>
+    <div class="deriva">
+      <div class="top">
+        <div class="wm">BEPPIANI<span>.</span><br>HOME</div>
+        <div class="loc">Borgo Valbelluna &middot; Ronchena<br>46.031&deg; N &middot; 12.002&deg; E</div>
+      </div>
+      <div class="saluto"><span id="saluto">Buongiorno</span><b>Alessandro</b></div>
+      <div class="avviso1"></div>
+      <div class="logo"></div>
+      <div class="ora">--:--</div>
+      <div class="data"></div>
+    </div>
+  </div>
+  </div>
+
+  <!-- 3. METEO: previsioni, prossime ore, radar ARPAV -->
+  <div class="sch" id="s2">
+    <div class="pad">
+      <div class="col sx">
+        <div class="box" id="meteo">
+          <div id="meteoale-box"><iframe id="meteoale" scrolling="no" src="https://office-foodboost.github.io/meteoale/?nome=Borgo%20Valbelluna&lat=46.031&lon=12.002&cornice=1&agg=28" title="MeteoAle"></iframe></div>
+          <div id="meteo-dati" style="display:none">
+          <div id="citta">Borgo Valbelluna &middot; adesso</div>
+          <div id="ora-meteo">
+            <div id="icona-ora"></div>
+            <div><div id="temp">--</div><div id="desc">Carico meteo...</div></div>
+          </div>
+          <div id="dettagli"></div>
+          <div id="prossimi"></div>
+          <div id="avvisitit">Avvisi prossime 36 ore</div>
+          <div id="avvisibox"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col dx">
+        <div class="box" id="radar">
+          <div class="tabs"><button id="tab-ore" class="on">Prossime 12 ore</button><button id="tab-radar">Radar ARPAV</button></div>
+          <div class="vista" id="ore">
+            <div id="oresintesi">Carico le previsioni...</div>
+            <div id="oregrid"></div>
+            <div id="orenota">Barra azzurra = probabilit&agrave; di pioggia in quell'ora &middot; Previsioni: modello ICON-2I (ItaliaMeteo-ARPAE); giorni 4-5 e probabilit&agrave;: Open-Meteo</div>
+          </div>
+          <div class="vista" id="radarvista" style="display:none">
+            <div id="mappa"></div>
+            <div id="radarnota">Radar pioggia</div>
+            <div id="zoom"><button id="zpiu">+</button><button id="zmeno">&minus;</button><button id="zcasa">&#8962;</button></div>
+            <div id="legenda">
+              <div id="scala">
+                <div style="background:#3c5fd0">molto debole</div><div style="background:#2fae3a">debole</div>
+                <div style="background:#f2b411">moderata</div><div style="background:#d8261c">intensa</div><div style="background:#b414c8">molto intensa</div>
+              </div>
+              Pioggia dai radar ARPAV (Teolo e Concordia), animazione dell'ultima ora, ogni 10 minuti. Punto oro = casa.
+              <b>Puntini gialli/arancio = fulmini recenti.</b> Mappa senza colori = non piove.
+              <div style="font-size:10px;color:#666;margin-top:3px">Fulmini: LightningMaps.org CC BY-SA 4.0 / Lightning data by Blitzortung.org and contributors &middot; Radar: ARPAV &middot; Mappa: Esri</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. CRUSCOTTO VENDITE (bozza, dati di esempio) -->
+  <div class="sch" id="s3">
+    <div class="pad">
+      <div id="titolo3">CRUSCOTTO <span id="esempio">dati di esempio</span></div>
+      <div class="kpi">
+        <div class="box"><div class="et">Vendite oggi</div><div class="num" id="k-oggi">-</div><div class="var" id="k-oggi-v"></div></div>
+        <div class="box"><div class="et">Ordini oggi</div><div class="num" id="k-ord">-</div><div class="var" id="k-ord-v"></div></div>
+        <div class="box"><div class="et">Mese</div><div class="num" id="k-mese">-</div><div class="var" id="k-mese-v"></div></div>
+      </div>
+      <div style="height:10px"></div>
+      <div class="riga3">
+        <div class="box"><div class="et">Ultimi 7 giorni</div><div id="barre"></div></div>
+        <div class="box"><div class="et">Da sistemare</div><div id="problemi"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. TELECAMERA: compare solo se CAMERA_URL è impostato -->
+  <div class="sch" id="s4" style="display:none"></div>
+</div>
+<div id="punti"></div>
+<div id="versione"></div>
+<div id="minip">&#9835; <span id="minnome"></span><button id="minstop">Stop</button></div>
+<div id="allarme"><div class="t">Tempo scaduto</div><div class="n" id="allarmenome"></div><div class="x">Tocca per fermare</div></div>
+
+<script>
+/* ============ IMPOSTAZIONI: modifica solo questa parte ============ */
+var VERSIONE = "28 \u00b7 25/11/2026";   /* aggiornare insieme a pannello.appcache */
+var LAT = 46.030738, LON = 12.001998;  // casa (coordinate date da Alessandro)
+var CAMERA_URL = "";            // indirizzo telecamera (vuoto = schermata nascosta)
+var CAMERA_TIPO = "img";        // "img" = MJPEG/snapshot, "iframe" = pagina web
+var CAMERA_REFRESH_SEC = 0;     // solo snapshot: ricarica ogni N secondi (0 = flusso continuo)
+
+/* Dati del cruscotto: per ora di esempio. Poi li collegheremo alle vendite vere */
+var DATI = {
+  esempio: true,
+  oggi: 842.50, ieri: 790.00,
+  ordini: 14, ordiniIeri: 16,
+  mese: 18420, mesePrec: 16900,
+  ultimi7: [620, 710, 540, 905, 790, 660, 842],   // dal più vecchio a oggi
+  problemi: ["2 ordini senza tracking", "1 pagamento in sospeso", "Scorta bassa: 3 prodotti"]
+};
+/* ================================================================== */
+
+var $ = function (id) { return document.getElementById(id); };
+var GIORNI = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
+function due(n) { return (n < 10 ? "0" : "") + n; }
+
+/* ---------- Schermate e swipe ---------- */
+var sch = document.querySelectorAll(".sch");
+var attive = [];
+var idx = 0;
+function costruisci() {
+  attive = [];
+  for (var i = 0; i < sch.length; i++) {
+    if (sch[i].style.display !== "none") attive.push(sch[i]);
+  }
+  var h = "";
+  for (var j = 0; j < attive.length; j++) h += '<i></i>';
+  $("punti").innerHTML = h;
+}
+function vai(n) {
+  if (n < 0) n = 0;
+  if (n > attive.length - 1) n = attive.length - 1;
+  idx = n;
+  var t = "translateX(" + (-100 * n) + "vw)";
+  $("pista").style.webkitTransform = t; $("pista").style.transform = t;
+  var p = $("punti").children;
+  for (var i = 0; i < p.length; i++) p[i].className = (i === n ? "on" : "");
+}
+/* Home: un tocco (senza trascinare) alterna Orbita e Swiss; la scelta resta salvata */
+var ultimoTocco = 0;
+function toccoHome(e) {
+  if (!attive[idx] || attive[idx].id !== "home") return;
+  var t = e.target;
+  while (t && t !== document.body) { if (t.tagName === "BUTTON") return; t = t.parentNode; }
+  var swiss = $("sw").className.indexOf("via") >= 0;   /* true = ora si vede Orbita */
+  $("s1").className = swiss ? "vh via" : "vh";
+  $("sw").className = swiss ? "vh" : "vh via";
+  try { localStorage.setItem("home", swiss ? "swiss" : "orbita"); } catch (er) {}
+}
+try { if (localStorage.getItem("home") === "swiss") { $("s1").className = "vh via"; $("sw").className = "vh"; } } catch (er) {}
+var x0 = null, y0 = 0;
+document.addEventListener("touchstart", function (e) {
+  x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+}, false);
+document.addEventListener("touchend", function (e) {
+  if (x0 === null) return;
+  var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+  x0 = null; ultimoTocco = Date.now();
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) vai(idx + (dx < 0 ? 1 : -1));
+  else if (Math.abs(dx) < 12 && Math.abs(dy) < 12) toccoHome(e);
+}, false);
+/* Dal computer: trascina col mouse, oppure due dita orizzontali sul trackpad */
+var mx = null, my = 0, ruota = false;
+document.addEventListener("mousedown", function (e) { mx = e.clientX; my = e.clientY; }, false);
+document.addEventListener("mouseup", function (e) {
+  if (mx === null) return;
+  var dx = e.clientX - mx, dy = e.clientY - my;
+  mx = null;
+  if (Date.now() - ultimoTocco < 1000) return;   /* su iPad il tocco genera anche un clic finto: lo ignoro */
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) vai(idx + (dx < 0 ? 1 : -1));
+  else if (Math.abs(dx) < 12 && Math.abs(dy) < 12) toccoHome(e);
+}, false);
+document.addEventListener("wheel", function (e) {
+  if (ruota || Math.abs(e.deltaX) < 30 || Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+  ruota = true;
+  vai(idx + (e.deltaX > 0 ? 1 : -1));
+  setTimeout(function () { ruota = false; }, 600);
+}, false);
+document.addEventListener("keydown", function (e) {   /* frecce della tastiera */
+  if (e.keyCode === 39) vai(idx + 1);
+  if (e.keyCode === 37) vai(idx - 1);
+});
+document.addEventListener("touchmove", function (e) {
+  var t = e.target;   /* le liste della radio possono scorrere in verticale */
+  while (t && t !== document.body) { if (t.className && String(t.className).indexOf("scorre") >= 0) return; t = t.parentNode; }
+  e.preventDefault();
+}, { passive: false });
+
+/* ---------- Logo Beppiani Home: cerchio, montagne, casa, occhio, stelle ---------- */
+function logoSVG(c) {
+  return '<svg viewBox="0 0 100 100" fill="none" stroke="' + c + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+    '<circle cx="50" cy="50" r="46" stroke-width="1"/>' +
+    '<path d="M14 70 L36 36 L47 52 L58 30 L86 70"/>' +
+    '<path d="M58 30 L52 41 L58 38 L63 42" stroke-width="1"/>' +
+    '<path d="M34 70 V58 L50 46 L66 58 V70 Z"/>' +
+    '<path d="M45 70 V62 H55 V70"/>' +
+    '<path d="M42 80 Q50 74 58 80 Q50 86 42 80 Z" stroke-width="1.2"/>' +
+    '<circle cx="50" cy="80" r="1.8" fill="' + c + '" stroke="none"/>' +
+    '<circle cx="24" cy="26" r="1" fill="' + c + '" stroke="none"/>' +
+    '<circle cx="76" cy="22" r="1.2" fill="' + c + '" stroke="none"/>' +
+    '<circle cx="68" cy="14" r=".8" fill="' + c + '" stroke="none"/></svg>';
+}
+(function () {
+  var l = document.querySelectorAll(".logo");
+  for (var i = 0; i < l.length; i++) l[i].innerHTML = logoSVG("#c9b27c");
+})();
+
+/* ---------- Orologio, saluto, orbita (+ piccolo spostamento anti-brucia-schermo) ---------- */
+var GG = ["domenica", "luned\u00ec", "marted\u00ec", "mercoled\u00ec", "gioved\u00ec", "venerd\u00ec", "sabato"];
+var MM = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+var passi = [[0, 0], [10, 6], [-8, 10], [8, -8], [-10, -4]];
+function orologio() {
+  var d = new Date(), i;
+  var hm = due(d.getHours()) + ":" + due(d.getMinutes());
+  var data = GG[d.getDay()] + " " + d.getDate() + " " + MM[d.getMonth()];
+  var o = document.querySelectorAll(".ora"), dd = document.querySelectorAll(".data");
+  for (i = 0; i < o.length; i++) o[i].textContent = hm;
+  for (i = 0; i < dd.length; i++) dd[i].textContent = data;
+  /* saluto: 5-13 buongiorno, 13-18 buon pomeriggio, 18-23 buonasera, 23-5 buonanotte */
+  var h = d.getHours();
+  $("saluto").textContent = (h >= 5 && h < 13) ? "Buongiorno" : (h >= 13 && h < 18) ? "Buon pomeriggio" :
+    (h >= 18 && h < 23) ? "Buonasera" : "Buonanotte";
+  /* orbita: l'anello si riempie nel corso del minuto */
+  var s = d.getSeconds();
+  $("orbita").setAttribute("stroke-dashoffset", (301.6 * (1 - s / 60)).toFixed(1));
+  var a = (s / 60) * 2 * Math.PI;
+  $("satellite").setAttribute("cx", (50 + 48 * Math.sin(a)).toFixed(2));
+  $("satellite").setAttribute("cy", (50 - 48 * Math.cos(a)).toFixed(2));
+  /* ogni 5 minuti sposta di pochi pixel le schermate sempre accese */
+  var p = passi[Math.floor(d.getTime() / 300000) % passi.length];
+  var t = "translate(" + p[0] + "px," + p[1] + "px)";
+  var dv = document.querySelectorAll(".deriva");
+  for (i = 0; i < dv.length; i++) { dv[i].style.webkitTransform = t; dv[i].style.transform = t; }
+}
+orologio();
+setInterval(orologio, 1000);
+
+/* ---------- Meteo (Open-Meteo, senza chiave) ---------- */
+var CODICI = {
+  0: "Cielo sereno", 1: "Prevalentemente sereno", 2: "Parzialmente nuvoloso", 3: "Cielo coperto",
+  45: "Nebbia", 48: "Nebbia con brina",
+  51: "Pioviggine leggera", 53: "Pioviggine", 55: "Pioviggine intensa", 56: "Pioviggine gelata", 57: "Pioviggine gelata",
+  61: "Pioggia debole", 63: "Pioggia moderata", 65: "Pioggia forte", 66: "Pioggia gelata", 67: "Pioggia gelata forte",
+  71: "Neve debole", 73: "Neve moderata", 75: "Neve forte", 77: "Granelli di neve",
+  80: "Rovesci deboli", 81: "Rovesci di pioggia", 82: "Rovesci violenti", 85: "Rovesci di neve", 86: "Forti rovesci di neve",
+  95: "Temporale", 96: "Temporale con grandine", 99: "Temporale con grandine forte"
+};
+/* Icone meteo disegnate nello stile del logo (linee sottili, oro e crema) */
+function icona(code, giorno) {
+  var o = "#c9b27c", cr = "#f2ead8", bl = "#7fb3d5";
+  var sole = '<circle cx="32" cy="32" r="10" stroke="' + o + '"/>' +
+    '<path stroke="' + o + '" d="M32 10v6M32 48v6M10 32h6M48 32h6M16.4 16.4l4.3 4.3M43.3 43.3l4.3 4.3M16.4 47.6l4.3-4.3M43.3 20.7l4.3-4.3"/>';
+  var luna = '<path stroke="' + o + '" d="M38 12a20 20 0 1 0 14 30a16 16 0 1 1 -14 -30z"/>';
+  var soleP = '<g transform="translate(-8 -8) scale(.75)">' + sole + '</g>';
+  var lunaP = '<g transform="translate(-6 -6) scale(.7)">' + luna + '</g>';
+  function nuvola(y) {
+    return '<path stroke="' + cr + '" fill="#000" transform="translate(0 ' + y + ')" d="M20 44h26a9 9 0 0 0 0-18a13 13 0 0 0-25-2a10 10 0 0 0-1 20z"/>';
+  }
+  var gocce = function (n) {
+    var p = n === 2 ? "M27 50l-3 6M39 50l-3 6" : "M24 50l-3 7M33 50l-3 7M42 50l-3 7";
+    return '<path stroke="' + bl + '" d="' + p + '"/>';
+  };
+  var neve = '<g fill="' + cr + '" stroke="none"><circle cx="24" cy="53" r="2"/><circle cx="33" cy="57" r="2"/><circle cx="42" cy="53" r="2"/></g>';
+  var x;
+  if (code === 0) x = giorno ? sole : luna;
+  else if (code === 1 || code === 2) x = (giorno ? soleP : lunaP) + nuvola(4);
+  else if (code === 3) x = nuvola(0);
+  else if (code === 45 || code === 48) x = nuvola(-6) + '<path stroke="' + cr + '" d="M14 48h36M18 54h28"/>';
+  else if (code >= 51 && code <= 57) x = nuvola(-6) + gocce(2);
+  else if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) x = nuvola(-6) + gocce(3);
+  else if ((code >= 71 && code <= 77) || code === 85 || code === 86) x = nuvola(-6) + neve;
+  else if (code >= 95) x = nuvola(-6) + '<path stroke="' + o + '" d="M34 44l-6 9h7l-5 9"/>';
+  else x = nuvola(0);
+  return '<svg viewBox="0 0 64 64" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:100%;height:100%">' + x + '</svg>';
+}
+function maiusc(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+function get(url, ok, ko) {
+  var x = new XMLHttpRequest();
+  x.open("GET", url, true);
+  x.timeout = 15000;
+  x.onload = function () {
+    if (x.status === 200) { try { ok(JSON.parse(x.responseText)); } catch (e) { ko(); } }
+    else ko();
+  };
+  x.onerror = x.ontimeout = ko;
+  x.send();
+}
+/* Due fonti: ICON-2I (modello italiano a 2,2 km, ottimo per la valle, ma solo 3 giorni e senza probabilità)
+   + modello standard Open-Meteo (giorni 4-5 e probabilità di pioggia). */
+function meteo() {
+  var base = "https://api.open-meteo.com/v1/forecast?latitude=" + LAT + "&longitude=" + LON + "&timezone=auto";
+  var cur = "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,precipitation,is_day";
+  var uIcon = base + "&models=italia_meteo_arpae_icon_2i" + cur +
+    "&hourly=temperature_2m,precipitation,weather_code,is_day&forecast_hours=12" +
+    "&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=3";
+  var uStd = base + cur + "&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,is_day&forecast_hours=12" +
+    "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=6";
+  var a = null, b = null, n = 0;
+  function fatto() { if (++n === 2) disegnaMeteo(a, b); }
+  get(uIcon, function (r) { a = r; fatto(); }, fatto);
+  get(uStd, function (r) { b = r; fatto(); }, fatto);
+}
+function val(x, campo, i) { return (x && x[campo] && x[campo][i] !== null && x[campo][i] !== undefined) ? x[campo][i] : null; }
+function disegnaMeteo(a, b) {
+  if (!a && !b) { $("desc").textContent = "Meteo non disponibile"; $("oresintesi").textContent = "Previsioni non disponibili"; return; }
+  var c = (a && a.current && a.current.temperature_2m !== null) ? a.current : b.current, i;
+  $("icona-ora").innerHTML = icona(c.weather_code, c.is_day === 1);
+  $("temp").textContent = Math.round(c.temperature_2m) + "°";
+  $("desc").textContent = CODICI[c.weather_code] || "";
+  $("dettagli").textContent = "Percepita " + Math.round(c.apparent_temperature) + "°  ·  Umidità " +
+    Math.round(c.relative_humidity_2m) + "%  ·  Vento " + Math.round(c.wind_speed_10m) + " km/h";
+  /* prossimi 5 giorni: ICON-2I dove c'è, altrimenti modello standard */
+  var dA = a && a.daily, dB = b && b.daily, h = "";
+  var giorni = dB ? dB.time : dA.time;
+  for (i = 1; i <= 5 && i < giorni.length; i++) {
+    var codice = val(dA, "weather_code", i), mn = val(dA, "temperature_2m_min", i), mx = val(dA, "temperature_2m_max", i);
+    if (codice === null) { codice = val(dB, "weather_code", i); mn = val(dB, "temperature_2m_min", i); mx = val(dB, "temperature_2m_max", i); }
+    if (codice === null) continue;
+    var d = new Date(giorni[i] + "T12:00:00");
+    var pp = val(dB, "precipitation_probability_max", i);
+    h += '<div class="g"><div class="ic">' + icona(codice, true) + '</div>' +
+      '<div class="gn">' + maiusc(GG[d.getDay()]) + '</div>' +
+      '<div class="pp">' + (pp !== null && pp >= 20 ? pp + "%" : "") + '</div>' +
+      '<div class="mm">' + Math.round(mn) + "° / " + Math.round(mx) + "°</div></div>";
+  }
+  $("prossimi").innerHTML = h;
+  /* prossime 12 ore */
+  var hA = a && a.hourly, hB = b && b.hourly, ore = hA || hB, g = "", primo = -1;
+  for (i = 0; i < ore.time.length && i < 12; i++) {
+    var t = ore.time[i], j = hB ? hB.time.indexOf(t) : -1;
+    var temp = val(hA, "temperature_2m", i), cod = val(hA, "weather_code", i), gio = val(hA, "is_day", i), mm = val(hA, "precipitation", i);
+    if (temp === null && j >= 0) { temp = val(hB, "temperature_2m", j); cod = val(hB, "weather_code", j); gio = val(hB, "is_day", j); mm = val(hB, "precipitation", j); }
+    var prob = j >= 0 ? (val(hB, "precipitation_probability", j) || 0) : 0;
+    if (primo < 0 && (prob >= 50 || mm >= 0.3)) primo = i;
+    g += '<div class="cella"><div class="h">' + (i === 0 ? "Ora" : t.substr(11, 2) + ":00") + '</div>' +
+      '<div class="ic">' + icona(cod, gio === 1) + '</div>' +
+      '<div class="t">' + Math.round(temp) + '°</div>' +
+      '<div class="barra"><i style="width:' + prob + '%"></i></div><div class="p">' + prob + '%' +
+      (mm >= 0.1 ? " · " + (Math.round(mm * 10) / 10) + " mm" : "") + '</div></div>';
+  }
+  $("oregrid").innerHTML = g;
+  var sint;
+  if (c.precipitation > 0) sint = "Sta piovendo adesso a casa.";
+  else if (primo === 0) sint = "Pioggia probabile già in quest'ora.";
+  else if (primo > 0) sint = "Asciutto per ora, pioggia probabile dalle " + ore.time[primo].substr(11, 2) + ":00.";
+  else sint = "Niente pioggia prevista nelle prossime 12 ore.";
+  $("oresintesi").textContent = sint;
+}
+meteo();
+setInterval(meteo, 15 * 60 * 1000);
+
+/* ---------- Avvisi: neve, vento forte, temporali, pioggia forte, gelo (prossime 36 ore, ICON-2I) ---------- */
+var FASCE = ["notte", "mattina", "pomeriggio", "sera"];
+function quando(t) {   /* "2026-11-24T15:00" -> "domani pomeriggio" */
+  var ora = new Date(), oggi = ora.getFullYear() + "-" + due(ora.getMonth() + 1) + "-" + due(ora.getDate());
+  var dom = new Date(ora.getTime() + 86400000), domani = dom.getFullYear() + "-" + due(dom.getMonth() + 1) + "-" + due(dom.getDate());
+  var giorno = t.substr(0, 10), h = parseInt(t.substr(11, 2), 10), f = Math.floor(h / 6);
+  if (giorno === oggi) return ["stanotte", "stamattina", "oggi pomeriggio", "stasera"][f];
+  if (giorno === domani) return (f === 0 && ora.getHours() >= 18) ? "stanotte" : "domani " + FASCE[f];
+  var d = new Date(giorno + "T12:00:00");
+  return GG[d.getDay()] + " " + FASCE[f];
+}
+function calcolaAvvisi(hh) {
+  var av = [], i, n = hh.time.length, primoTemp = -1, maxR = 0, iR = -1, neve = 0, primoNeve = -1;
+  var maxP = 0, iP = -1, minT = 99, iT = -1;
+  for (i = 0; i < n; i++) {
+    var c = hh.weather_code[i], r = hh.wind_gusts_10m[i] || 0, sn = hh.snowfall[i] || 0, p = hh.precipitation[i] || 0, t = hh.temperature_2m[i];
+    if (primoTemp < 0 && c >= 95) primoTemp = i;
+    if (r > maxR) { maxR = r; iR = i; }
+    if (sn > 0) { neve += sn; if (primoNeve < 0) primoNeve = i; }
+    var p3 = p + (hh.precipitation[i + 1] || 0) + (hh.precipitation[i + 2] || 0);
+    if (iP < 0 && (p >= 6 || p3 >= 15)) iP = i;
+    if (p3 > maxP) maxP = p3;
+    if (t !== null && t < minT) { minT = t; iT = i; }
+  }
+  if (primoTemp >= 0) av.push("Rischio temporali " + quando(hh.time[primoTemp]));
+  if (maxR >= 75) av.push("Vento molto forte: raffiche fino a " + Math.round(maxR) + " km/h " + quando(hh.time[iR]));
+  else if (maxR >= 50) av.push("Raffiche di vento fino a " + Math.round(maxR) + " km/h " + quando(hh.time[iR]));
+  if (neve >= 0.5) av.push("Neve " + quando(hh.time[primoNeve]) + " (circa " + Math.round(neve) + " cm)");
+  if (iP >= 0) av.push("Pioggia forte " + quando(hh.time[iP]));
+  if (minT <= -3) av.push("Gelo: fino a " + Math.round(minT) + "° " + quando(hh.time[iT]) + ", attenzione al ghiaccio");
+  return av;
+}
+function mostraAvvisi(av) {
+  var uno = document.querySelectorAll(".avviso1"), i, h = "";
+  for (i = 0; i < uno.length; i++) {
+    uno[i].innerHTML = av.length ? '<span class="pallino">!</span>' + av[0] + (av.length > 1 ? " (+" + (av.length - 1) + ")" : "") : "";
+    uno[i].className = av.length ? "avviso1 on" : "avviso1";
+  }
+  for (i = 0; i < av.length; i++) h += '<div class="a"><span class="pallino">!</span>' + av[i] + '</div>';
+  $("avvisibox").innerHTML = h || '<div class="a nessuno">Nessun avviso: niente temporali, vento forte, neve, pioggia forte o gelo in arrivo.</div>';
+}
+function avvisi() {
+  if (/[?&]avvisi=prova/.test(location.search)) {   /* prova: index.html?avvisi=prova */
+    mostraAvvisi(["Raffiche di vento fino a 62 km/h domani pomeriggio", "Neve domani sera (circa 4 cm)", "Gelo: fino a -5° stanotte, attenzione al ghiaccio"]);
+    return;
+  }
+  var campi = "&hourly=weather_code,wind_gusts_10m,snowfall,precipitation,temperature_2m&forecast_hours=36&timezone=auto";
+  var base = "https://api.open-meteo.com/v1/forecast?latitude=" + LAT + "&longitude=" + LON;
+  get(base + "&models=italia_meteo_arpae_icon_2i" + campi, function (r) { mostraAvvisi(calcolaAvvisi(r.hourly)); },
+    function () { get(base + campi, function (r) { mostraAvvisi(calcolaAvvisi(r.hourly)); }, function () {}); });
+}
+avvisi();
+setInterval(avvisi, 30 * 60 * 1000);
+
+/* ---------- Radar pioggia ARPAV (mosaico radar Veneto, colori originali) + fulmini ----------
+   L'API ARPAV dà 10 immagini (ogni 10 minuti, ora UTC, sfondo bianco che sparisce con "multiply").
+   Sono enormi (3240x2432): per non saturare la memoria dell'iPad le rimpicciolisco una alla volta
+   e animo solo l'ultima ora (6 fotogrammi). */
+var mappa = null, frames = [], fi = 0, animaz = null, fulmini = null, caricando = false;
+var ARPAV_ESTENSIONE = [1069124.515, 5464986.767, 1669457.005, 5975011.496];   /* EPSG:3857, dal sito ARPAV */
+var FULMINI_URL = "https://tiles.lightningmaps.org/?x={x}&y={y}&z={z}&s=256&t=5";
+function rimpicciolisci(b64, cb) {
+  var img = new Image();
+  img.onload = function () {
+    var c = document.createElement("canvas");
+    c.width = 1296; c.height = 973;
+    c.getContext("2d").drawImage(img, 0, 0, 1296, 973);
+    var u = null;
+    try { u = c.toDataURL("image/png"); } catch (e) {}
+    img.src = ""; c.width = 1; c.height = 1;   /* libera memoria */
+    cb(u);
+  };
+  img.onerror = function () { cb(null); };
+  img.src = "data:image/png;base64," + b64.replace(/\s/g, "");
+}
+function mostraFrame() {
+  for (var k = 0; k < frames.length; k++) frames[k].l.setOpacity(k === fi ? 0.9 : 0);
+  var d = new Date(frames[fi].t + "Z");
+  $("radarnota").textContent = "Pioggia alle " + due(d.getHours()) + ":" + due(d.getMinutes()) +
+    (fi === frames.length - 1 ? " (ultima)" : "");
+}
+function anima() {
+  if (animaz) clearTimeout(animaz);
+  mostraFrame();
+  animaz = setTimeout(function () { fi = (fi + 1) % frames.length; anima(); }, fi === frames.length - 1 ? 2500 : 700);
+}
+function radar() {
+  if (typeof L === "undefined") { $("radarnota").textContent = "Radar non disponibile"; return; }
+  if (!mappa) {
+    mappa = L.map("mappa", { minZoom: 6, maxZoom: 12, zoomControl: false, attributionControl: false, dragging: false, touchZoom: false,
+      doubleClickZoom: false, scrollWheelZoom: false, boxZoom: false, keyboard: false, tap: false }).setView([LAT, LON], 9);
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 12 }).addTo(mappa);
+    fulmini = L.tileLayer(FULMINI_URL + "&_=" + Date.now(), { maxZoom: 12, zIndex: 500 }).addTo(mappa);
+    L.circleMarker([LAT, LON], { radius: 7, color: "#000", weight: 2, fillColor: "#c9b27c", fillOpacity: 1 }).addTo(mappa);
+  } else if (fulmini) {
+    fulmini.setUrl(FULMINI_URL + "&_=" + Date.now());
+  }
+  if (caricando) return;
+  caricando = true;
+  if (!frames.length) $("radarnota").textContent = "Carico il radar...";
+  get("https://api.arpa.veneto.it/REST/v1/radar_imgs_geo", function (r) {
+    var lista = r.data.slice(0, 6).reverse(), nuovi = [], k = 0;
+    var sw = L.CRS.EPSG3857.unproject(L.point(ARPAV_ESTENSIONE[0], ARPAV_ESTENSIONE[1]));
+    var ne = L.CRS.EPSG3857.unproject(L.point(ARPAV_ESTENSIONE[2], ARPAV_ESTENSIONE[3]));
+    var bordi = L.latLngBounds(sw, ne);
+    function prossimo() {
+      if (k >= lista.length) {
+        for (var i = 0; i < frames.length; i++) mappa.removeLayer(frames[i].l);
+        frames = nuovi; caricando = false;
+        if (frames.length) { fi = 0; anima(); } else $("radarnota").textContent = "Radar ARPAV non disponibile";
+        return;
+      }
+      var f = lista[k++];
+      rimpicciolisci(f.image, function (u) {
+        if (u) nuovi.push({ l: L.imageOverlay(u, bordi, { opacity: 0, className: "radarimg" }).addTo(mappa), t: f.date });
+        setTimeout(prossimo, 50);
+      });
+    }
+    prossimo();
+  }, function () { caricando = false; $("radarnota").textContent = "Radar ARPAV non disponibile"; });
+}
+/* fulmini: aggiorno ogni 2 minuti mentre la scheda radar è aperta */
+setInterval(function () { if (fulmini && $("radarvista").style.display !== "none") fulmini.setUrl(FULMINI_URL + "&_=" + Date.now()); }, 2 * 60 * 1000);
+setInterval(function () { if (mappa && $("radarvista").style.display !== "none") radar(); }, 10 * 60 * 1000);
+function scheda(radarSi) {
+  $("ore").style.display = radarSi ? "none" : "";
+  $("radarvista").style.display = radarSi ? "" : "none";
+  $("tab-ore").className = radarSi ? "" : "on";
+  $("tab-radar").className = radarSi ? "on" : "";
+  if (radarSi) { radar(); mappa.invalidateSize(); }
+}
+$("tab-ore").onclick = function () { scheda(false); };
+$("tab-radar").onclick = function () { scheda(true); };
+if (/[?&]radar=1/.test(location.search)) setTimeout(function () { scheda(true); }, 500);   /* prova: index.html?radar=1 */
+/* zoom con i pulsanti (il dito sulla mappa resta libero per lo swipe tra schermate) */
+$("zpiu").onclick = function () { if (mappa) mappa.zoomIn(); };
+$("zmeno").onclick = function () { if (mappa) mappa.zoomOut(); };
+$("zcasa").onclick = function () { if (mappa) mappa.setView([LAT, LON], 9); };
+
+/* ---------- Timer ----------
+   Preset: parte subito. +1'/-1': funzionano anche mentre corre. Pausa/Riprendi: ferma e riparte. */
+var resto = 0, tick = null, fine = null, finale = 0;
+function mostra() {
+  $("tempo").textContent = due(Math.floor(resto / 60)) + ":" + due(resto % 60);
+  var b = $("avvia");
+  if (tick) { b.textContent = "Pausa"; b.style.background = "#d68910"; }
+  else { b.textContent = resto > 0 ? "Riprendi" : "Avvia"; b.style.background = ""; }
+}
+/* ---------- Suoni dell'allarme ----------
+   Creati qui con la sintesi audio (Web Audio): niente file da scaricare, funzionano anche offline.
+   iOS accende l'audio solo dopo un tocco: a ogni tocco "risveglio" l'audio con un suono muto. */
+var nomeTimer = "", actx = null, master = null, giroSuono = null, sessione = null;
+function contesto() {
+  if (!actx) { var A = window.AudioContext || window.webkitAudioContext; if (A) actx = new A(); }
+  return actx;
+}
+function wavSilenzio() {   /* mezzo secondo di silenzio, WAV 16 bit */
+  var sr = 8000, n = 4000, b, i;
+  function u32(v) { return String.fromCharCode(v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255); }
+  function u16(v) { return String.fromCharCode(v & 255, (v >> 8) & 255); }
+  b = "RIFF" + u32(36 + n * 2) + "WAVE" + "fmt " + u32(16) + u16(1) + u16(1) + u32(sr) + u32(sr * 2) + u16(2) + u16(16) + "data" + u32(n * 2);
+  for (i = 0; i < n; i++) b += "\x00\x00";
+  return "data:audio/wav;base64," + btoa(b);
+}
+function sblocca() {
+  var c = contesto();
+  if (!c) return;
+  try {
+    var buf = c.createBuffer(1, 1, 22050), src = c.createBufferSource();
+    src.buffer = buf; src.connect(c.destination);
+    if (src.start) src.start(0); else src.noteOn(0);
+  } catch (e) {}
+  if (c.state !== "running" && c.resume) { try { c.resume(); } catch (e) {} }
+  /* audio "muto" in sottofondo: su iOS aiuta a far suonare anche col tasto silenzioso */
+  if (!sessione) {
+    try { sessione = new Audio(wavSilenzio()); sessione.loop = true; var p = sessione.play(); if (p && p.catch) p.catch(function () { sessione = null; }); }
+    catch (e) { sessione = null; }
+  }
+}
+document.addEventListener("touchend", sblocca, false);
+document.addEventListener("click", sblocca, false);
+
+/* mattoncini: un tono con attacco e decadimento */
+function tono(dest, f, t, dur, tipo, vol, att) {
+  var c = actx, o = c.createOscillator(), g = c.createGain();
+  o.type = tipo || "sine";
+  o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + (att || 0.01));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(dest);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function campana(dest, f, t, dur, vol) {   /* armoniche "storte" come una vera campana */
+  var r = [1, 2.0, 2.76, 5.4], a = [1, 0.45, 0.3, 0.12];
+  for (var k = 0; k < r.length; k++) tono(dest, f * r[k], t, dur / (1 + k * 0.8), "sine", vol * a[k], 0.005);
+}
+var SUONI = [
+  { nome: "Campana tibetana", durata: 5, suona: function (d, t) {
+      campana(d, 196, t, 5, 0.5); tono(d, 197.6, t, 5, "sine", 0.3, 0.02);     /* due toni vicini = vibrazione */
+      campana(d, 392, t + 2.5, 2.5, 0.12); } },
+  { nome: "Carillon", durata: 3.4, suona: function (d, t) {
+      var n = [784, 659, 1047, 784, 1175, 1047];
+      for (var k = 0; k < n.length; k++) { tono(d, n[k], t + k * 0.28, 1.3, "sine", 0.35, 0.005); tono(d, n[k] * 3, t + k * 0.28, 0.4, "sine", 0.06, 0.005); } } },
+  { nome: "Marimba", durata: 2.2, suona: function (d, t) {
+      var n = [523, 659, 784, 1047, 784, 1047];
+      for (var k = 0; k < n.length; k++) { tono(d, n[k], t + k * 0.16, 0.6, "sine", 0.45, 0.004); tono(d, n[k] * 4, t + k * 0.16, 0.12, "sine", 0.12, 0.002); } } },
+  { nome: "Arpa", durata: 3.2, suona: function (d, t) {
+      var n = [262, 330, 392, 523, 659, 784, 1047];
+      for (var k = 0; k < n.length; k++) tono(d, n[k], t + k * 0.1, 1.8, "triangle", 0.3, 0.004); } },
+  { nome: "Gong", durata: 6, suona: function (d, t) {
+      campana(d, 98, t, 6, 0.6); tono(d, 99.2, t, 6, "sine", 0.35, 0.05); tono(d, 147, t, 4, "sine", 0.15, 0.08); } },
+  { nome: "Sveglia classica", durata: 1.2, suona: function (d, t) {
+      for (var k = 0; k < 4; k++) tono(d, 880, t + k * 0.18, 0.12, "square", 0.12, 0.002); } }
+];
+var scelto = 0;
+try { scelto = parseInt(localStorage.getItem("suono") || "0", 10) || 0; } catch (e) {}
+if (scelto >= SUONI.length) scelto = 0;
+function nomeSuono() { $("suononome").textContent = SUONI[scelto].nome; }
+nomeSuono();
+function stopSuono() {
+  if (giroSuono) { clearInterval(giroSuono); giroSuono = null; }
+  if (master) { try { master.gain.value = 0; master.disconnect(); } catch (e) {} master = null; }
+}
+function riproduci(ripeti) {
+  var c = contesto();
+  if (!c) return;
+  if (c.state !== "running" && c.resume) { try { c.resume(); } catch (e) {} }
+  stopSuono();
+  master = c.createGain(); master.gain.value = 1; master.connect(c.destination);
+  var s = SUONI[scelto], m = master;
+  s.suona(m, c.currentTime + 0.05);
+  if (ripeti) giroSuono = setInterval(function () { if (master === m) s.suona(m, c.currentTime + 0.05); }, s.durata * 1000);
+}
+$("suono").onclick = function () {
+  sblocca();
+  scelto = (scelto + 1) % SUONI.length;
+  try { localStorage.setItem("suono", scelto); } catch (e) {}
+  nomeSuono();
+  riproduci(false);
+};
+
+function suona() {
+  $("tempo").className = "fine";
+  $("allarmenome").textContent = nomeTimer;
+  $("allarme").className = "on";
+  riproduci(true);
+  var n = 0;
+  fine = setInterval(function () {
+    $("allarme").className = (n % 2 === 0) ? "on lampo" : "on";
+    if (++n > 240) fermaAllarme();   /* si ferma da solo dopo 2 minuti */
+  }, 500);
+}
+function fermaAllarme() {
+  if (fine) { clearInterval(fine); fine = null; }
+  stopSuono();
+  $("allarme").className = "";
+  $("tempo").className = "";
+}
+function pausa() {
+  if (tick) { clearInterval(tick); tick = null; }
+  mostra();
+}
+function avvia() {
+  sblocca();
+  if (tick || resto <= 0) return;
+  finale = Date.now() + resto * 1000;
+  tick = setInterval(function () {
+    resto = Math.max(0, Math.round((finale - Date.now()) / 1000));
+    if (resto <= 0) { clearInterval(tick); tick = null; suona(); }
+    mostra();
+  }, 250);
+  mostra();
+}
+function aggiungi(sec) {
+  fermaAllarme();
+  if (tick) {
+    finale = Math.max(Date.now() + 1000, finale + sec * 1000);
+    resto = Math.round((finale - Date.now()) / 1000);
+  } else {
+    resto = Math.max(0, resto + sec);
+  }
+  mostra();
+}
+var preset = document.querySelectorAll("[data-m]");
+for (var i = 0; i < preset.length; i++) {
+  preset[i].onclick = function () {
+    pausa(); fermaAllarme(); sblocca();
+    resto = parseInt(this.getAttribute("data-m"), 10) * 60;
+    nomeTimer = this.getAttribute("data-n") || ("Timer " + this.getAttribute("data-m") + " minuti finito");
+    avvia();
+  };
+}
+$("avvia").onclick = function () { fermaAllarme(); if (tick) pausa(); else avvia(); };
+$("ferma").onclick = function () { pausa(); fermaAllarme(); resto = 0; mostra(); };
+$("piu").onclick = function () { aggiungi(60); };
+$("meno").onclick = function () { aggiungi(-60); };
+$("allarme").addEventListener("touchend", function (e) { e.preventDefault(); fermaAllarme(); }, false);
+$("allarme").addEventListener("click", fermaAllarme, false);
+/* prova: index.html?prova=5 avvia un timer di 5 secondi */
+var prova = /[?&]prova=(\d+)/.exec(location.search);
+if (prova) { resto = parseInt(prova[1], 10); nomeTimer = "Prova allarme"; avvia(); }
+mostra();
+
+/* ---------- Cruscotto ---------- */
+function euro(n) { return "€ " + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+function variazione(el, ora, prima) {
+  var p = prima ? Math.round((ora - prima) / prima * 100) : 0;
+  el.textContent = (p >= 0 ? "▲ +" : "▼ ") + p + "% rispetto a prima";
+  el.className = "var " + (p >= 0 ? "su" : "giu");
+}
+function cruscotto() {
+  $("esempio").style.display = DATI.esempio ? "" : "none";
+  $("k-oggi").textContent = euro(DATI.oggi);  variazione($("k-oggi-v"), DATI.oggi, DATI.ieri);
+  $("k-ord").textContent = DATI.ordini;       variazione($("k-ord-v"), DATI.ordini, DATI.ordiniIeri);
+  $("k-mese").textContent = euro(DATI.mese);  variazione($("k-mese-v"), DATI.mese, DATI.mesePrec);
+  var max = 1, i;
+  for (i = 0; i < DATI.ultimi7.length; i++) if (DATI.ultimi7[i] > max) max = DATI.ultimi7[i];
+  var oggi = new Date(), h = "";
+  for (i = 0; i < DATI.ultimi7.length; i++) {
+    var g = new Date(oggi.getTime() - (DATI.ultimi7.length - 1 - i) * 86400000);
+    h += '<div class="' + (i === DATI.ultimi7.length - 1 ? "oggi" : "") + '" style="height:' +
+      Math.round(DATI.ultimi7[i] / max * 100) + '%"><span>' + GIORNI[g.getDay()] + "</span></div>";
+  }
+  $("barre").innerHTML = h;
+  var p = "";
+  for (i = 0; i < DATI.problemi.length; i++) p += '<div class="prob"><b>⚠</b>' + DATI.problemi[i] + "</div>";
+  $("problemi").innerHTML = p || '<div class="prob">Tutto a posto ✓</div>';
+}
+cruscotto();
+
+/* ---------- Telecamera (schermata 4, solo se impostata) ---------- */
+function camera() {
+  if (!CAMERA_URL) return;
+  var s4 = $("s4");
+  s4.style.display = "";
+  if (CAMERA_TIPO === "iframe") { s4.innerHTML = '<iframe src="' + CAMERA_URL + '"></iframe>'; return; }
+  var img = document.createElement("img");
+  s4.appendChild(img);
+  function carica() {
+    img.src = CAMERA_URL + (CAMERA_REFRESH_SEC ? (CAMERA_URL.indexOf("?") < 0 ? "?" : "&") + "t=" + Date.now() : "");
+  }
+  img.onerror = function () { setTimeout(carica, 5000); };
+  carica();
+  if (CAMERA_REFRESH_SEC) setInterval(carica, CAMERA_REFRESH_SEC * 1000);
+}
+camera();
+
+/* ---------- Radio (stream diretti; su iPad si possono mandare agli HomePod via AirPlay) ---------- */
+var RADIO = [
+  { n: "Rai Radio 1", g: "notizie e sport", u: "http://icestreaming.rai.it/1.mp3" },
+  { n: "Rai Radio 2", g: "intrattenimento", u: "http://icestreaming.rai.it/2.mp3" },
+  { n: "Rai Radio 3", g: "cultura e classica", u: "http://icestreaming.rai.it/3.mp3" },
+  { n: "Radio Belluno", g: "locale", u: "https://ice01.fluidstream.net/belluno.aac" },
+  { n: "RTL 102.5", g: "hit", u: "https://dd782ed59e2a4e86aabf6fc508674b59.msvdn.net/live/S97044836/tbbP8T1ZRPBL/playlist_audio.m3u8" },
+  { n: "Radio Deejay", g: "hit e talk", u: "https://4c4b867c89244861ac216426883d1ad0.msvdn.net/radiodeejay/radiodeejay/master_ma.m3u8" },
+  { n: "Radio 105", g: "hit", u: "http://icecast.unitedradio.it/Radio105.mp3" },
+  { n: "Virgin Radio", g: "rock", u: "http://icecast.unitedradio.it/Virgin.mp3" },
+  { n: "Radio Capital", g: "classici e notizie", u: "https://4c4b867c89244861ac216426883d1ad0.msvdn.net/radiocapital/radiocapital/master_ma.m3u8" },
+  { n: "Radio Italia", g: "musica italiana", u: "https://radioitaliasmi.akamaized.net/hls/live/2093120/RISMI/stream01/streamPlaylist.m3u8" },
+  { n: "Radio Monte Carlo", g: "lounge e pop", u: "http://icecast.unitedradio.it/RMC.mp3" },
+  { n: "Radio 24", g: "notizie ed economia", u: "http://shoutcast2.radio24.it:8000/;" },
+  { n: "Radio Company", g: "Veneto", u: "https://sphera.fluidstream.eu/company.aac" },
+  { n: "Radio Birikina", g: "Veneto", u: "http://wma01.fluidstream.net/birikina" },
+  { n: "m2o", g: "dance", u: "https://4c4b867c89244861ac216426883d1ad0.msvdn.net/radiom2o/radiom2o/master_ma.m3u8" },
+  { n: "Radio Freccia", g: "rock", u: "https://dd782ed59e2a4e86aabf6fc508674b59.msvdn.net/live/S3160845/0tuSetc8UFkF/playlist_audio.m3u8" }
+];
+var radio = $("radioaudio"), rCorr = null, rAccesa = false, PREFERITE = [];
+try { PREFERITE = JSON.parse(localStorage.getItem("radioPref") || "[]"); } catch (e) { PREFERITE = []; }
+try { rCorr = JSON.parse(localStorage.getItem("radioUltima") || "null"); } catch (e) { rCorr = null; }
+function salvaPref() { try { localStorage.setItem("radioPref", JSON.stringify(PREFERITE)); } catch (e) {} }
+function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function trovaPref(u) { for (var i = 0; i < PREFERITE.length; i++) if (PREFERITE[i].u === u) return i; return -1; }
+function lista() { return PREFERITE.concat(RADIO); }
+function disegnaGriglia() {
+  var L = lista(), h = "";
+  for (var i = 0; i < L.length; i++) {
+    var mia = i < PREFERITE.length;
+    h += '<button class="rt" data-r="' + i + '">' + esc(L[i].n) + '<small>' + esc(L[i].g || "") + (mia ? " ★" : "") + '</small>' +
+      (mia ? '<span class="togli" data-t="' + i + '">togli</span>' : '') + '</button>';
+  }
+  $("rgriglia").innerHTML = h;
+  var b = document.querySelectorAll(".rt");
+  for (var k = 0; k < b.length; k++) b[k].onclick = function (e) {
+    var t = e.target || e.srcElement, L2 = lista();
+    if (t && t.getAttribute && t.getAttribute("data-t") !== null) {   /* "togli" su una radio salvata */
+      PREFERITE.splice(parseInt(t.getAttribute("data-t"), 10), 1); salvaPref(); disegnaGriglia(); aggiornaRadio(); return;
+    }
+    accendiRadio(L2[parseInt(this.getAttribute("data-r"), 10)]);
+  };
+}
+function aggiornaRadio(stato) {
+  var b = document.querySelectorAll(".rt"), L = lista();
+  for (var k = 0; k < b.length; k++) b[k].className = (rCorr && L[k] && L[k].u === rCorr.u ? "rt on" : "rt");
+  $("rnome").textContent = rCorr ? rCorr.n : "Scegli una radio";
+  if (stato) $("rstato").textContent = stato;
+  $("rplay").textContent = rAccesa ? "Stop" : "Ascolta";
+  $("rplay").className = rAccesa ? "stop" : "";
+  $("minnome").textContent = rCorr ? rCorr.n : "";
+  $("minip").className = (rAccesa && attive[idx] && attive[idx].id !== "sr") ? "on" : "";
+}
+disegnaGriglia();
+function accendiRadio(st) {
+  sblocca();
+  rCorr = st; rAccesa = true;
+  try { localStorage.setItem("radioUltima", JSON.stringify(st)); } catch (e) {}
+  radio.src = st.u;
+  var p = radio.play();
+  if (p && p.catch) p.catch(function () { rAccesa = false; aggiornaRadio("Non parte: tocca di nuovo la stazione"); });
+  aggiornaRadio("Mi collego...");
+}
+function spegniRadio() {
+  rAccesa = false;
+  radio.pause(); radio.removeAttribute("src"); try { radio.load(); } catch (e) {}
+  aggiornaRadio("Spenta");
+}
+radio.addEventListener("playing", function () { aggiornaRadio("In onda"); }, false);
+radio.addEventListener("waiting", function () { if (rAccesa) aggiornaRadio("Carico..."); }, false);
+radio.addEventListener("error", function () { if (rAccesa) { rAccesa = false; aggiornaRadio("Radio non raggiungibile, provane un'altra"); } }, false);
+
+/* ---- ricerca nell'archivio mondiale gratuito radio-browser.info (solo formati che l'iPad sa suonare) ---- */
+var RISULTATI = [], SERVER_RB = ["https://de1.api.radio-browser.info", "https://nl1.api.radio-browser.info", "https://at1.api.radio-browser.info"];
+function mostraRicerca(si) {
+  $("rgriglia").style.display = si ? "none" : "";
+  $("rrisultati").style.display = si ? "" : "none";
+  $("rchiudi").style.display = si ? "" : "none";
+}
+function suonabile(x) {
+  var c = (x.codec || "").toUpperCase();
+  return x.hls === 1 || c === "MP3" || c.indexOf("AAC") === 0 || c === "UNKNOWN" || c === "";
+}
+function disegnaRisultati() {
+  var h = "";
+  for (var i = 0; i < RISULTATI.length; i++) {
+    var x = RISULTATI[i], salvata = trovaPref(x.u) >= 0;
+    h += '<div class="ris"><div class="rn">' + esc(x.n) + '<small>' + esc(x.g) + '</small></div>' +
+      '<button class="su" data-p="' + i + '">&#9654; Ascolta</button>' +
+      '<button class="salva" data-s="' + i + '">' + (salvata ? "★ Salvata" : "☆ Salva") + '</button></div>';
+  }
+  $("rrisultati").innerHTML = h || '<div class="rmsg">Nessuna radio trovata. Prova con un altro nome.</div>';
+  var bp = $("rrisultati").querySelectorAll("[data-p]"), bs = $("rrisultati").querySelectorAll("[data-s]"), k;
+  for (k = 0; k < bp.length; k++) bp[k].onclick = function () { accendiRadio(RISULTATI[parseInt(this.getAttribute("data-p"), 10)]); };
+  for (k = 0; k < bs.length; k++) bs[k].onclick = function () {
+    var x = RISULTATI[parseInt(this.getAttribute("data-s"), 10)], j = trovaPref(x.u);
+    if (j >= 0) PREFERITE.splice(j, 1); else PREFERITE.unshift({ n: x.n, g: x.g, u: x.u });
+    salvaPref(); disegnaGriglia(); disegnaRisultati(); aggiornaRadio();
+  };
+}
+function cercaRadio(testo, srv) {
+  srv = srv || 0;
+  testo = (testo || "").replace(/^\s+|\s+$/g, "");
+  if (testo.length < 2) return;
+  mostraRicerca(true);
+  $("rrisultati").innerHTML = '<div class="rmsg">Cerco "' + esc(testo) + '"...</div>';
+  var u = SERVER_RB[srv] + "/json/stations/search?name=" + encodeURIComponent(testo) +
+    "&limit=60&hidebroken=true&order=votes&reverse=true";
+  get(u, function (r) {
+    RISULTATI = [];
+    for (var i = 0; i < r.length && RISULTATI.length < 30; i++) {
+      var x = r[i];
+      if (!suonabile(x) || !x.url_resolved) continue;
+      var info = [x.state || x.country || "", (x.tags || "").split(",").slice(0, 2).join(", "), x.bitrate ? x.bitrate + " kbps" : ""];
+      var g = [];
+      for (var j = 0; j < info.length; j++) if (info[j]) g.push(info[j]);
+      RISULTATI.push({ n: x.name.replace(/^\s+|\s+$/g, ""), g: g.join(" · "), u: x.url_resolved });
+    }
+    disegnaRisultati();
+  }, function () {
+    if (srv + 1 < SERVER_RB.length) cercaRadio(testo, srv + 1);
+    else $("rrisultati").innerHTML = '<div class="rmsg">Ricerca non disponibile adesso. Riprova tra poco.</div>';
+  });
+}
+$("rcerca").onsubmit = function (e) {
+  if (e && e.preventDefault) e.preventDefault();
+  $("rtesto").blur();   /* chiude la tastiera */
+  cercaRadio($("rtesto").value);
+  return false;
+};
+$("rchiudi").onclick = function () { $("rtesto").value = ""; mostraRicerca(false); aggiornaRadio(); };
+if (/[?&]cerca=/.test(location.search)) cercaRadio(decodeURIComponent(/[?&]cerca=([^&]*)/.exec(location.search)[1]));   /* prova */
+$("rplay").onclick = function () { if (rAccesa) spegniRadio(); else if (rCorr) accendiRadio(rCorr); else aggiornaRadio("Prima scegli una stazione"); };
+$("minstop").onclick = spegniRadio;
+/* AirPlay: Safari su iPad apre la scelta degli altoparlanti (HomePod, Apple TV) */
+$("rair").onclick = function () {
+  if (radio.webkitShowPlaybackTargetPicker) {
+    if (!rAccesa && rCorr) accendiRadio(rCorr);
+    try { radio.webkitShowPlaybackTargetPicker(); } catch (e) { aggiornaRadio("Usa il Centro di Controllo → AirPlay"); }
+  } else aggiornaRadio("Qui non disponibile: usa il Centro di Controllo → AirPlay");
+};
+setInterval(function () { aggiornaRadio(); }, 1000);   /* mostra/nasconde il mini lettore quando cambi schermata */
+
+$("versione").textContent = "v" + VERSIONE;
+costruisci();
+function indiceHome() { for (var i = 0; i < attive.length; i++) if (attive[i].id === "home") return i; return 0; }
+var parte = /[?&]n=(\d)/.exec(location.search);
+vai(parte ? parseInt(parte[1], 10) - 1 : indiceHome());
+
+/* Se nessuno tocca lo schermo per 30 secondi, torna alla home (non durante l'allarme) */
+var ultimoUso = Date.now();
+function usato() { ultimoUso = Date.now(); }
+document.addEventListener("touchstart", usato, false);
+document.addEventListener("mousedown", usato, false);
+document.addEventListener("keydown", usato, false);
+document.addEventListener("wheel", usato, false);
+/* MeteoAle (nella schermata meteo) sta in un riquadro che non scorre, con misure fisse in pixel: così su iOS 12
+   non si allunga quanto la pagina (è MeteoAle a scorrere dentro di sé). Le misure si rifanno quando l'iPad viene girato.
+   A ogni tocco MeteoAle avvisa: così non si torna alla home mentre la si usa.
+   I tocchi dentro il riquadro non arrivano al pannello: è MeteoAle a dire quando un dito scorre di lato
+   ("avanti" / "indietro"), e il pannello cambia schermata come con uno scorrimento normale. */
+var mBox = $("meteoale-box"), mFr = $("meteoale");
+function misuraMeteoAle() {
+  if (!mBox.clientWidth || !mBox.clientHeight) return;
+  mFr.style.width = mBox.clientWidth + "px"; mFr.style.height = mBox.clientHeight + "px";
+}
+function rimisuraMeteoAle() { misuraMeteoAle(); setTimeout(misuraMeteoAle, 300); setTimeout(misuraMeteoAle, 1000); }
+rimisuraMeteoAle();
+mFr.addEventListener("load", misuraMeteoAle, false);
+window.addEventListener("resize", rimisuraMeteoAle, false);
+window.addEventListener("orientationchange", rimisuraMeteoAle, false);
+var passoMeteoAle = 0;
+window.addEventListener("message", function (e) {
+  if (e.source !== mFr.contentWindow) return;
+  if (e.data === "meteoale:tocco") usato();
+  else if (e.data === "meteoale:avanti" || e.data === "meteoale:indietro") {
+    usato();
+    if (Date.now() - passoMeteoAle < 600) return;   /* uno scorrimento = una schermata */
+    passoMeteoAle = Date.now();
+    vai(idx + (e.data === "meteoale:avanti" ? 1 : -1));
+  }
+}, false);
+setInterval(function () {
+  if (fine || $("allarme").className.indexOf("on") >= 0) { usato(); return; }
+  if (!parte && Date.now() - ultimoUso > 30000 && idx !== indiceHome()) vai(indiceHome());
+}, 2000);
+
+/* Copia offline: se sul Mac c'è una versione nuova, la scarica e la applica */
+if (window.applicationCache) {
+  window.applicationCache.addEventListener("updateready", function () {
+    try { window.applicationCache.swapCache(); } catch (e) {}
+    location.reload();
+  }, false);
+}
+
+/* Ricarica la pagina ogni notte alle 04:00 */
+setInterval(function () {
+  var d = new Date();
+  if (d.getHours() === 4 && d.getMinutes() === 0 && d.getSeconds() < 30) location.reload();
+}, 30000);
+</script>
+</body>
+</html>

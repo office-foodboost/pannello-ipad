@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Beppiani Home - proposte home</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+  html, body { margin: 0; height: 100%; background: #000; color: #fff; overflow: hidden;
+    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  #pista { display: -webkit-flex; display: flex; height: 100%;
+    -webkit-transition: -webkit-transform .35s ease; transition: transform .35s ease; }
+  .sch { width: 100vw; height: 100%; -webkit-flex: none; flex: none; position: relative; overflow: hidden; }
+  .tag { position: absolute; right: 14px; bottom: 12px; font-size: 13px; color: #fff; opacity: .55;
+    background: rgba(255,255,255,.08); padding: 4px 10px; border-radius: 10px; z-index: 5; }
+  .tag b { font-weight: 600; }
+  #punti { position: fixed; bottom: 14px; left: 0; right: 0; text-align: center; z-index: 6; pointer-events: none; }
+  #punti i { display: inline-block; width: 7px; height: 7px; border-radius: 4px; background: #333; margin: 0 4px; }
+  #punti i.on { background: #999; }
+  .flex { display: -webkit-flex; display: flex; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ===== 1. SWISS GRID ===== */
+  #p1 { background: #000; padding: 5vmin 6vmin; }
+  #p1 .top { -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: flex-start; align-items: flex-start;
+    border-bottom: 1px solid #2a2a2a; padding-bottom: 2.5vmin; }
+  #p1 .wm { font-size: 2.6vmin; font-weight: 700; letter-spacing: .5vmin; line-height: 1.25; }
+  #p1 .wm span { color: #e4002b; }
+  #p1 .loc { font-size: 1.8vmin; color: #777; text-align: right; line-height: 1.5; letter-spacing: .2vmin; text-transform: uppercase; }
+  #p1 .ora { position: absolute; left: 6vmin; bottom: 12vmin; font-size: 30vmin; font-weight: 700; letter-spacing: -.3vmin; line-height: .8; }
+  #p1 .data { position: absolute; left: 6.5vmin; bottom: 6vmin; font-size: 2.6vmin; color: #888; text-transform: uppercase; letter-spacing: .4vmin; }
+  #p1 .logo { position: absolute; right: 5vmin; top: 16vmin; width: 54vmin; height: 54vmin; }
+  #p1 .grid { position: absolute; top: 0; bottom: 0; width: 1px; background: #111; }
+
+  /* ===== 2. MONOGRAMMA ===== */
+  #p2 { background: #050505; text-align: center; padding-top: 12vh; }
+  #p2 .mono { display: inline-block; width: 16vmin; height: 16vmin; border: 1px solid #b9975b; position: relative; }
+  #p2 .mono span { position: absolute; left: 0; right: 0; top: 50%; margin-top: -4.2vmin; font-family: Didot, "Bodoni 72", Georgia, serif;
+    font-size: 7.5vmin; color: #b9975b; letter-spacing: .3vmin; line-height: 8.4vmin; }
+  #p2 .mono:after { content: ""; position: absolute; left: 1.2vmin; top: 1.2vmin; right: 1.2vmin; bottom: 1.2vmin; border: 1px solid rgba(185,151,91,.35); }
+  #p2 .wm { font-family: Didot, "Bodoni 72", Georgia, serif; font-size: 3.2vmin; letter-spacing: 1.6vmin; color: #d9c49a; margin-top: 3.5vmin; padding-left: 1.6vmin; }
+  #p2 .sub { font-size: 1.6vmin; letter-spacing: .9vmin; color: #6d6252; margin-top: 1.2vmin; padding-left: .9vmin; }
+  #p2 .ora { font-size: 18vmin; font-weight: 100; margin-top: 7vmin; color: #eee; letter-spacing: .5vmin; }
+  #p2 .linea { width: 8vmin; height: 1px; background: #b9975b; margin: 3vmin auto; }
+  #p2 .data { font-family: Georgia, serif; font-style: italic; font-size: 2.6vmin; color: #8a7c66; }
+
+  /* ===== 3. CORPORATE BLU ===== */
+  #p3 { background: #06101f; }
+  #p3 .barra { position: absolute; left: 0; top: 0; bottom: 0; width: 1.2vmin; background: #1f6feb; }
+  #p3 .head { position: absolute; left: 7vmin; top: 6vmin; -webkit-align-items: center; align-items: center; }
+  #p3 .head svg { width: 7vmin; height: 7vmin; margin-right: 2vmin; }
+  #p3 .wm { font-size: 3vmin; font-weight: 600; letter-spacing: .2vmin; }
+  #p3 .wm small { display: block; font-size: 1.7vmin; font-weight: 400; color: #6f8bb3; letter-spacing: .5vmin; margin-top: .4vmin; }
+  #p3 .ora { position: absolute; right: 7vmin; top: 50%; margin-top: -14vmin; font-size: 24vmin; font-weight: 200; text-align: right; line-height: 1; }
+  #p3 .data { position: absolute; right: 7.5vmin; top: 50%; margin-top: 11vmin; font-size: 2.8vmin; color: #6f8bb3; }
+  #p3 .foot { position: absolute; left: 7vmin; right: 7vmin; bottom: 7vmin; border-top: 1px solid #16294a; padding-top: 2.2vmin;
+    font-size: 1.9vmin; color: #6f8bb3; letter-spacing: .2vmin; }
+  #p3 .foot div { margin-right: 6vmin; }
+  #p3 .ok { color: #3fb950; }
+
+  /* ===== 4. TERMINALE ===== */
+  #p4 { background: #000; font-family: Menlo, "Courier New", monospace; color: #d0d0d0; padding: 4vmin 5vmin; }
+  #p4 .hdr { -webkit-justify-content: space-between; justify-content: space-between; font-size: 1.8vmin; color: #ffb000;
+    border-bottom: 1px solid #333; padding-bottom: 1.6vmin; letter-spacing: .2vmin; }
+  #p4 .ora { font-size: 22vmin; color: #ffb000; margin-top: 16vh; letter-spacing: -.6vmin; line-height: 1; }
+  #p4 .sec { font-size: 7vmin; color: #7a5600; }
+  #p4 .data { font-size: 2.6vmin; margin-top: 2vmin; color: #999; text-transform: uppercase; }
+  #p4 .righe { position: absolute; left: 5vmin; right: 5vmin; bottom: 7vmin; font-size: 1.8vmin; color: #666; border-top: 1px solid #222; padding-top: 1.6vmin; }
+  #p4 .righe div { margin-bottom: .6vmin; }
+  #p4 .righe b { color: #ffb000; font-weight: 400; }
+
+  /* ===== 5. STANDBY (Apple) ===== */
+  #p5 { background: #000; }
+  #p5 .data { position: absolute; left: 6vmin; top: 6vmin; font-size: 3.4vmin; font-weight: 600; color: #ff453a; }
+  #p5 .ora { position: absolute; left: 0; right: 0; top: 50%; margin-top: -21vmin; text-align: center;
+    font-size: 42vmin; font-weight: 800; letter-spacing: -.4vmin; line-height: 42vmin; color: #ff6b5f; }
+  #p5 .wm { position: absolute; left: 0; right: 0; bottom: 7vmin; text-align: center; font-size: 2.2vmin; font-weight: 600; color: #5a1d18; letter-spacing: .3vmin; }
+
+  /* ===== 6. LOCK SCREEN (Apple) ===== */
+  #p6 { background: #0b0b1a;
+    background-image: -webkit-radial-gradient(20% 85%, circle, #3b1d5e 0%, rgba(59,29,94,0) 55%), -webkit-radial-gradient(85% 15%, circle, #12395e 0%, rgba(18,57,94,0) 55%);
+    background-image: radial-gradient(circle at 20% 85%, #3b1d5e 0%, rgba(59,29,94,0) 55%), radial-gradient(circle at 85% 15%, #12395e 0%, rgba(18,57,94,0) 55%);
+    text-align: center; }
+  #p6 .data { margin-top: 13vh; font-size: 3.2vmin; font-weight: 500; color: rgba(255,255,255,.85); }
+  #p6 .ora { font-size: 26vmin; font-weight: 600; line-height: 1; margin-top: 1vmin; color: rgba(255,255,255,.95); letter-spacing: 0; }
+  #p6 .pill { position: absolute; left: 50%; bottom: 9vmin; width: 40vmin; margin-left: -20vmin; background: rgba(255,255,255,.12);
+    border-radius: 4vmin; padding: 2vmin 3vmin; -webkit-align-items: center; align-items: center; text-align: left; }
+  #p6 .pill svg { width: 5vmin; height: 5vmin; margin-right: 2vmin; -webkit-flex: none; flex: none; }
+  #p6 .pill b { display: block; font-size: 2.3vmin; font-weight: 600; }
+  #p6 .pill span { font-size: 1.9vmin; color: rgba(255,255,255,.6); }
+
+  /* ===== 7. WIDGET (Apple) ===== */
+  #p7 { background: #000; padding: 6vmin; -webkit-align-items: center; align-items: center; }
+  #p7 .sx { -webkit-flex: 1; flex: 1; padding-left: 2vmin; }
+  #p7 .ora { font-size: 24vmin; font-weight: 700; letter-spacing: -.2vmin; line-height: 1; }
+  #p7 .sal { font-size: 3vmin; color: #8e8e93; margin-top: 2vmin; font-weight: 500; }
+  #p7 .dx { width: 34vmin; }
+  #p7 .w { background: #1c1c1e; border-radius: 4vmin; padding: 3vmin; margin-bottom: 3vmin; height: 26vmin; position: relative; }
+  #p7 .cal .gs { font-size: 2.4vmin; font-weight: 700; color: #ff453a; text-transform: uppercase; }
+  #p7 .cal .gn { font-size: 13vmin; font-weight: 300; line-height: 1.05; }
+  #p7 .cal .ms { font-size: 2.2vmin; color: #8e8e93; }
+  #p7 .casa svg { width: 9vmin; height: 9vmin; }
+  #p7 .casa b { position: absolute; left: 3vmin; bottom: 6vmin; font-size: 2.6vmin; font-weight: 600; }
+  #p7 .casa span { position: absolute; left: 3vmin; bottom: 3vmin; font-size: 2vmin; color: #30d158; }
+
+  /* ===== 8. ANALOGICO (Apple) ===== */
+  #p8 { background: #000; text-align: center; }
+  .q { position: absolute; left: 50%; top: 50%; width: 64vmin; height: 64vmin; margin: -36vmin 0 0 -32vmin; border-radius: 50%; }
+  .tacca { position: absolute; left: 50%; top: 0; width: .5vmin; height: 3vmin; margin-left: -.25vmin; background: #555;
+    -webkit-transform-origin: 50% 32vmin; transform-origin: 50% 32vmin; }
+  .tacca.big { background: #fff; width: .8vmin; margin-left: -.4vmin; height: 4.5vmin; }
+  .lanc { position: absolute; left: 50%; bottom: 50%; border-radius: 1vmin; -webkit-transform-origin: 50% 100%; transform-origin: 50% 100%; }
+  #p8 .lo, #p10 .lo { width: 1.6vmin; height: 16vmin; margin-left: -.8vmin; background: #fff; }
+  #p8 .lm, #p10 .lm { width: 1.1vmin; height: 26vmin; margin-left: -.55vmin; background: #fff; }
+  #p8 .ls, #p10 .ls { width: .4vmin; height: 29vmin; margin-left: -.2vmin; background: #ff9f0a; }
+  .perno { position: absolute; left: 50%; top: 50%; width: 2.4vmin; height: 2.4vmin; margin: -1.2vmin 0 0 -1.2vmin; border-radius: 50%;
+    background: #ff9f0a; border: .5vmin solid #000; }
+  #p8 .logo { position: absolute; left: 50%; top: 9vmin; width: 15vmin; height: 15vmin; margin-left: -7.5vmin; }
+  #p8 .nome { position: absolute; left: 50%; top: 50%; margin-top: 9vmin; width: 30vmin; margin-left: -15vmin; font-size: 1.9vmin;
+    font-weight: 600; letter-spacing: .5vmin; color: #ff9f0a; }
+  #p8 .data { position: absolute; left: 0; right: 0; bottom: 6vmin; font-size: 2.6vmin; color: #8e8e93; font-weight: 500; }
+
+  .logo svg { width: 100%; height: 100%; display: block; }
+
+  /* ===== 9. LOGO PROTAGONISTA ===== */
+  #p9 { background: #000; text-align: center; }
+  #p9 .logo { width: 62vmin; height: 62vmin; margin: 7vmin auto 0; }
+  #p9 .ora { font-size: 11vmin; font-weight: 200; letter-spacing: .6vmin; margin-top: 3vmin; color: #e8dcc0; }
+  #p9 .data { font-size: 2.2vmin; letter-spacing: .6vmin; color: #6d6252; text-transform: uppercase; margin-top: 1vmin; }
+
+  /* ===== 10. SWISS + ANALOGICO ===== */
+  #p10 { background: #000; padding: 5vmin 6vmin; }
+  #p10 .q { left: 50%; top: 50%; margin: -32vmin 0 0 -32vmin; }
+  #p10 .logo { position: absolute; left: 50%; top: 50%; width: 40vmin; height: 40vmin; margin: -20vmin 0 0 -20vmin; opacity: .35; }
+  #p10 .data { position: absolute; left: 6.5vmin; bottom: 6vmin; font-size: 2.6vmin; color: #888; text-transform: uppercase; letter-spacing: .4vmin; }
+  #p10 .dig { position: absolute; right: 6vmin; bottom: 5.4vmin; font-size: 3.4vmin; font-weight: 700; color: #fff; }
+
+  /* ===== 11. ORBITA ===== */
+  #p11 { background: #000; }
+  #p11 .anello { position: absolute; left: 50%; top: 50%; width: 76vmin; height: 76vmin; margin: -40vmin 0 0 -38vmin; }
+  #p11 .logo { position: absolute; left: 50%; top: 50%; width: 15vmin; height: 15vmin; margin: -29vmin 0 0 -7.5vmin; }
+  #p11 .ora { position: absolute; left: 0; right: 0; top: 50%; margin-top: -9vmin; text-align: center; font-size: 15vmin; font-weight: 200; color: #f2ead8; }
+  #p11 .data { position: absolute; left: 0; right: 0; top: 50%; margin-top: 10vmin; text-align: center; font-size: 2.4vmin; letter-spacing: .5vmin; color: #8a7c66; text-transform: uppercase; }
+  #p11 .wm { position: absolute; left: 0; right: 0; bottom: 7vmin; text-align: center; font-size: 1.9vmin; letter-spacing: 1.2vmin; color: #5a4f3e; }
+
+  /* ===== 12. NOTTURNO ===== */
+  #p12 { background: #000; text-align: center; }
+  #p12 .logo { width: 30vmin; height: 30vmin; margin: 14vh auto 0; opacity: .55; }
+  #p12 .ora { font-size: 20vmin; font-weight: 100; color: #7a2b20; margin-top: 4vmin; }
+  #p12 .data { font-size: 2.2vmin; color: #4a1d16; letter-spacing: .4vmin; margin-top: 1vmin; }
+  #p12 .nota { position: absolute; left: 0; right: 0; bottom: 7vmin; font-size: 1.8vmin; color: #33140f; letter-spacing: .3vmin; }
+</style>
+</head>
+<body>
+<div id="pista">
+
+  <!-- ============ 1. SWISS GRID ============ -->
+  <div class="sch" id="p1">
+    <div class="grid" style="left:33.3%"></div><div class="grid" style="left:66.6%"></div>
+    <div class="top flex">
+      <div class="wm">BEPPIANI<span>.</span><br>HOME</div>
+      <div class="loc">Borgo Valbelluna<br>46.08&deg; N &middot; 12.08&deg; E</div>
+    </div>
+    <div class="ora num">--:--</div>
+    <div class="data"></div>
+    <div class="logo" data-c="#ffffff" data-p="#e4002b"></div>
+    <div class="tag"><b>1</b> &middot; Swiss Grid</div>
+  </div>
+
+  <!-- ============ 2. MONOGRAMMA ============ -->
+  <div class="sch" id="p2">
+    <div class="mono"><span>BH</span></div>
+    <div class="wm">BEPPIANI</div>
+    <div class="sub">HOME &middot; DAL 2026</div>
+    <div class="ora num">--:--</div>
+    <div class="linea"></div>
+    <div class="data"></div>
+    <div class="tag"><b>2</b> &middot; Monogramma</div>
+  </div>
+
+  <!-- ============ 3. CORPORATE BLU ============ -->
+  <div class="sch" id="p3">
+    <div class="barra"></div>
+    <div class="head flex">
+      <svg viewBox="0 0 40 40" fill="none" stroke="#1f6feb" stroke-width="2.4" stroke-linejoin="round">
+        <path d="M20 3 L35 11.5 V28.5 L20 37 L5 28.5 V11.5 Z"/>
+        <path d="M11 27 L17 17 L21 22 L25 15 L30 27" stroke="#fff" stroke-width="2"/>
+      </svg>
+      <div class="wm">Beppiani Home<small>HOME OPERATING PANEL</small></div>
+    </div>
+    <div class="ora num">--:--</div>
+    <div class="data"></div>
+    <div class="foot flex">
+      <div>BORGO VALBELLUNA &middot; BL</div>
+      <div>RETE <span class="ok">&#9679; ATTIVA</span></div>
+      <div>PANNELLO 01</div>
+    </div>
+    <div class="tag"><b>3</b> &middot; Corporate Blu</div>
+  </div>
+
+  <!-- ============ 4. TERMINALE ============ -->
+  <div class="sch" id="p4">
+    <div class="hdr flex">
+      <div>BEPPIANI HOME // CONTROL</div>
+      <div>BORGO VALBELLUNA &middot; IT</div>
+      <div>SYS OK</div>
+    </div>
+    <div class="ora num"><span class="hm">--:--</span><span class="sec">:--</span></div>
+    <div class="data"></div>
+    <div class="righe">
+      <div><b>&gt;</b> pannello avviato &middot; schermo sempre attivo</div>
+      <div><b>&gt;</b> meteo, timer, cruscotto: scorri a sinistra</div>
+      <div><b>&gt;</b> in attesa di comandi_</div>
+    </div>
+    <div class="tag"><b>4</b> &middot; Terminale</div>
+  </div>
+
+  <!-- ============ 5. STANDBY (Apple) ============ -->
+  <div class="sch" id="p5">
+    <div class="data"></div>
+    <div class="ora num">--:--</div>
+    <div class="wm">BEPPIANI HOME</div>
+    <div class="tag"><b>5</b> &middot; StandBy</div>
+  </div>
+
+  <!-- ============ 6. LOCK SCREEN (Apple) ============ -->
+  <div class="sch" id="p6">
+    <div class="data"></div>
+    <div class="ora num">--:--</div>
+    <div class="pill flex">
+      <svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M6 33 L16 15 L21 23 L26 13 L35 33"/><path d="M14 33 V26 L20 21 L26 26 V33"/>
+      </svg>
+      <div><b>Beppiani Home</b><span>Borgo Valbelluna &middot; tutto a posto</span></div>
+    </div>
+    <div class="tag"><b>6</b> &middot; Lock Screen</div>
+  </div>
+
+  <!-- ============ 7. WIDGET (Apple) ============ -->
+  <div class="sch flex" id="p7">
+    <div class="sx">
+      <div class="ora num">--:--</div>
+      <div class="sal"></div>
+    </div>
+    <div class="dx">
+      <div class="w cal"><div class="gs"></div><div class="gn"></div><div class="ms"></div></div>
+      <div class="w casa">
+        <svg viewBox="0 0 40 40" fill="none" stroke="#ff9f0a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M5 34 L16 14 L21 22 L26 12 L36 34"/><path d="M14 34 V26 L20 21 L26 26 V34"/>
+        </svg>
+        <b>Beppiani Home</b><span>&#9679; Tutto a posto</span>
+      </div>
+    </div>
+    <div class="tag"><b>7</b> &middot; Widget</div>
+  </div>
+
+  <!-- ============ 8. ANALOGICO (Apple) ============ -->
+  <div class="sch" id="p8">
+    <div class="q">
+      <div class="logo" data-c="#ff9f0a" data-p="#ff9f0a"></div>
+      <div class="nome">BEPPIANI HOME</div>
+      <div class="lanc lo"></div>
+      <div class="lanc lm"></div>
+      <div class="lanc ls"></div>
+      <div class="perno"></div>
+    </div>
+    <div class="data"></div>
+    <div class="tag"><b>8</b> &middot; Analogico</div>
+  </div>
+
+  <!-- ============ 9. LOGO PROTAGONISTA ============ -->
+  <div class="sch" id="p9">
+    <div class="logo" data-c="#c9b27c" data-p="#c9b27c"></div>
+    <div class="ora num">--:--</div>
+    <div class="data"></div>
+    <div class="tag"><b>9</b> &middot; Logo protagonista</div>
+  </div>
+
+  <!-- ============ 10. SWISS + ANALOGICO ============ -->
+  <div class="sch" id="p10">
+    <div class="top flex" style="-webkit-justify-content:space-between;justify-content:space-between;border-bottom:1px solid #2a2a2a;padding-bottom:2.5vmin">
+      <div style="font-size:2.6vmin;font-weight:700;letter-spacing:.5vmin;line-height:1.25">BEPPIANI<span style="color:#ff9f0a">.</span><br>HOME</div>
+      <div style="font-size:1.8vmin;color:#777;text-align:right;line-height:1.5;letter-spacing:.2vmin">BORGO VALBELLUNA<br>46.08&deg; N &middot; 12.08&deg; E</div>
+    </div>
+    <div class="q">
+      <div class="logo" data-c="#ffffff" data-p="#ff9f0a"></div>
+      <div class="lanc lo"></div>
+      <div class="lanc lm"></div>
+      <div class="lanc ls"></div>
+      <div class="perno"></div>
+    </div>
+    <div class="data"></div>
+    <div class="dig num ora">--:--</div>
+    <div class="tag"><b>10</b> &middot; Swiss + Analogico</div>
+  </div>
+
+  <!-- ============ 11. ORBITA ============ -->
+  <div class="sch" id="p11">
+    <svg class="anello" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="48" fill="none" stroke="#1a1712" stroke-width=".6"/>
+      <circle id="orbita" cx="50" cy="50" r="48" fill="none" stroke="#c9b27c" stroke-width=".6" stroke-linecap="round"
+        stroke-dasharray="301.6" stroke-dashoffset="301.6" transform="rotate(-90 50 50)"/>
+      <circle id="satellite" cx="50" cy="2" r="1" fill="#c9b27c"/>
+    </svg>
+    <div class="logo" data-c="#c9b27c" data-p="#c9b27c"></div>
+    <div class="ora num">--:--</div>
+    <div class="data"></div>
+    <div class="wm">BEPPIANI HOME &middot; BORGO VALBELLUNA</div>
+    <div class="tag"><b>11</b> &middot; Orbita</div>
+  </div>
+
+  <!-- ============ 12. NOTTURNO ============ -->
+  <div class="sch" id="p12">
+    <div class="logo" data-c="#7a2b20" data-p="#a8392b"></div>
+    <div class="ora num">--:--</div>
+    <div class="data"></div>
+    <div class="nota">BEPPIANI HOME &middot; MODALIT&Agrave; NOTTE</div>
+    <div class="tag"><b>12</b> &middot; Notturno</div>
+  </div>
+</div>
+<div id="punti"></div>
+
+<script>
+var $ = function (id) { return document.getElementById(id); };
+function due(n) { return (n < 10 ? "0" : "") + n; }
+function tutti(sel) { return document.querySelectorAll(sel); }
+var GG = ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"];
+var MM = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+
+/* logo Beppiani Home: cerchio, montagne, casa, occhio, stelle (colore tratto c, pupilla p) */
+function logoSVG(c, p) {
+  return '<svg viewBox="0 0 100 100" fill="none" stroke="' + c + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+    '<circle cx="50" cy="50" r="46" stroke-width="1"/>' +
+    '<path d="M14 70 L36 36 L47 52 L58 30 L86 70"/>' +
+    '<path d="M58 30 L52 41 L58 38 L63 42" stroke-width="1"/>' +
+    '<path d="M34 70 V58 L50 46 L66 58 V70 Z"/>' +
+    '<path d="M45 70 V62 H55 V70"/>' +
+    '<path d="M42 80 Q50 74 58 80 Q50 86 42 80 Z" stroke-width="1.2"/>' +
+    '<circle cx="50" cy="80" r="1.8" fill="' + p + '" stroke="none"/>' +
+    '<circle cx="24" cy="26" r="1" fill="' + c + '" stroke="none"/>' +
+    '<circle cx="76" cy="22" r="1.2" fill="' + c + '" stroke="none"/>' +
+    '<circle cx="68" cy="14" r=".8" fill="' + c + '" stroke="none"/></svg>';
+}
+(function () {
+  var l = tutti(".logo");
+  for (var i = 0; i < l.length; i++) l[i].innerHTML = logoSVG(l[i].getAttribute("data-c"), l[i].getAttribute("data-p"));
+})();
+
+/* tacche dei quadranti analogici */
+(function () {
+  var qq = tutti(".q"), h = "";
+  for (var i = 0; i < 60; i++) {
+    var r = "rotate(" + (i * 6) + "deg)";
+    h += '<div class="tacca' + (i % 5 === 0 ? " big" : "") + '" style="-webkit-transform:' + r + ';transform:' + r + '"></div>';
+  }
+  for (var j = 0; j < qq.length; j++) qq[j].insertAdjacentHTML("afterbegin", h);
+})();
+
+function ruota(el, gradi) {
+  var t = "rotate(" + gradi + "deg)";
+  el.style.webkitTransform = t; el.style.transform = t;
+}
+
+/* un solo timer per tutti gli orologi */
+function aggiorna() {
+  var d = new Date(), i;
+  var hm = due(d.getHours()) + ":" + due(d.getMinutes());
+  var g = GG[d.getDay()];
+  var data = g.charAt(0).toUpperCase() + g.slice(1) + " " + d.getDate() + " " + MM[d.getMonth()];
+  var o = tutti(".ora");
+  for (i = 0; i < o.length; i++) if (!o[i].querySelector(".hm")) o[i].textContent = hm;
+  var dd = tutti(".data");
+  for (i = 0; i < dd.length; i++) dd[i].textContent = data;
+  /* terminale */
+  document.querySelector("#p4 .hm").textContent = hm;
+  document.querySelector("#p4 .sec").textContent = ":" + due(d.getSeconds());
+  /* widget */
+  var h = d.getHours();
+  document.querySelector("#p7 .sal").textContent = h < 6 ? "Buona notte" : h < 13 ? "Buongiorno" : h < 18 ? "Buon pomeriggio" : "Buona sera";
+  document.querySelector("#p7 .gs").textContent = GG[d.getDay()];
+  document.querySelector("#p7 .gn").textContent = d.getDate();
+  document.querySelector("#p7 .ms").textContent = MM[d.getMonth()] + " " + d.getFullYear();
+  /* analogico */
+  var s = d.getSeconds(), m = d.getMinutes() + s / 60;
+  var ls = tutti(".ls"), lm = tutti(".lm"), lo = tutti(".lo");
+  for (i = 0; i < ls.length; i++) {
+    ruota(ls[i], s * 6);
+    ruota(lm[i], m * 6);
+    ruota(lo[i], (d.getHours() % 12 + m / 60) * 30);
+  }
+  /* orbita: l'anello si riempie nel corso del minuto */
+  $("orbita").setAttribute("stroke-dashoffset", (301.6 * (1 - s / 60)).toFixed(1));
+  var a = (s / 60) * 2 * Math.PI;
+  $("satellite").setAttribute("cx", (50 + 48 * Math.sin(a)).toFixed(2));
+  $("satellite").setAttribute("cy", (50 - 48 * Math.cos(a)).toFixed(2));
+}
+aggiorna();
+setInterval(aggiorna, 1000);
+
+/* ---------- scorrimento ---------- */
+var sch = tutti(".sch"), idx = 0, h = "";
+for (var k = 0; k < sch.length; k++) h += "<i></i>";
+$("punti").innerHTML = h;
+function vai(n) {
+  if (n < 0) n = 0;
+  if (n > sch.length - 1) n = sch.length - 1;
+  idx = n;
+  var t = "translateX(" + (-100 * n) + "vw)";
+  $("pista").style.webkitTransform = t; $("pista").style.transform = t;
+  var p = $("punti").children;
+  for (var i = 0; i < p.length; i++) p[i].className = (i === n ? "on" : "");
+}
+function swipe(dx, dy) { if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) vai(idx + (dx < 0 ? 1 : -1)); }
+var x0 = null, y0 = 0;
+document.addEventListener("touchstart", function (e) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, false);
+document.addEventListener("touchend", function (e) {
+  if (x0 === null) return;
+  swipe(e.changedTouches[0].clientX - x0, e.changedTouches[0].clientY - y0); x0 = null;
+}, false);
+document.addEventListener("touchmove", function (e) { e.preventDefault(); }, { passive: false });
+var mx = null, my = 0, bloc = false;
+document.addEventListener("mousedown", function (e) { mx = e.clientX; my = e.clientY; }, false);
+document.addEventListener("mouseup", function (e) { if (mx === null) return; swipe(e.clientX - mx, e.clientY - my); mx = null; }, false);
+document.addEventListener("wheel", function (e) {
+  if (bloc || Math.abs(e.deltaX) < 30 || Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+  bloc = true; vai(idx + (e.deltaX > 0 ? 1 : -1)); setTimeout(function () { bloc = false; }, 600);
+}, false);
+document.addEventListener("keydown", function (e) {
+  if (e.keyCode === 39) vai(idx + 1);
+  if (e.keyCode === 37) vai(idx - 1);
+});
+var parte = /[?&]n=(\d+)/.exec(location.search);
+vai(parte ? parseInt(parte[1], 10) - 1 : 0);
+</script>
+</body>
+</html>

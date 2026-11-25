@@ -1,0 +1,13 @@
+CACHE MANIFEST
+# Beppiani Home - copia offline per l'iPad
+# Cambia la versione qui sotto ogni volta che modifichi index.html,
+# così l'iPad scarica la versione nuova alla prima occasione.
+# versione 28 - 2026-11-25
+
+index.html
+lib/leaflet.js
+lib/leaflet.css
+apple-touch-icon.png
+
+NETWORK:
+*
